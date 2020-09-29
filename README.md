@@ -1,4 +1,2 @@
 # RobotFightingContest
-不写了，懒
-
-就这样吧
+https://github.com/HRBUST-EmbeddedLaboratoryTeam1/RobotFightingContest.git
