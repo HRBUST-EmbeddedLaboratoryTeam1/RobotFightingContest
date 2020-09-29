@@ -1,2 +1,2 @@
 # RobotFightingContest
-https://github.com/HRBUST-EmbeddedLaboratoryTeam1/RobotFightingContest.git
+GitHub仓库地址: https://github.com/HRBUST-EmbeddedLaboratoryTeam1/RobotFightingContest.git
