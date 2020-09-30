@@ -8,24 +8,41 @@ const int GEAR_ANGLE_5 = 515;	//5号舵机平衡位置角度
 
 const int GEAR_ANGLE_INIT = 400; //初始化舵机变换角度
 
-const int SPEED_GEAR = 350;	//舵机速度
+const int SPEED_GEAR = 600;	//舵机速度
+const int SPEED_Motor = 320; //电机速度
+const int DELAY_UpStage = 750; //上台延时
 
 void InitSys();	//初始化系统
 void InitGear();	//初始化舵机
 void InitMotor();	//初始化电机
-
 void InitForepaw(); //初始化前爪
 void InitHindpaw(); //初始化后爪 
-
 void InitClaw();	//初始化爪子
 
+void SoftStart(); //软启动函数
+
+void MoveBeforeUpStage(); //上台前的向前走
 void FirstUpStage();	//第一次上台
 
+void LcdShowInt(int); //LCD屏幕上显示数字
 void DebugGearbalan();	//测试爪子平衡位置
 void DebugInfraredSensor(int,int,int); //测试红外传感器
 
+void MoveForword(int); //向前走
+void MoveStop(); //停下
 
-void MoveForword(int,int); //向前走
+/**
+ * Title: LcdShowInt()
+ * Return: None
+ * Author: Altria
+ * Descr: 显示屏上显示数字x
+ * LastBuild: 20200930
+ */
+void LcdShowInt(int x) {
+	UP_delay_ms(400);
+	UP_LCD_ClearScreen();
+	printf("%d\n",x);
+}
 
 /**
  * Title: Init()
@@ -124,20 +141,115 @@ void InitClaw()
 }
 
 /**
- * Title: MoveForword(int,int)
- * args: spped - 运行速度
- * args: time - 运行时间
+ * Title: MoveStop()
  * Return: None
  * Author: Altria
- * Descr: 以速度spee向前行驶time时间
- * LastBuild: 20200928
+ * Descr: 停下
+ * LastBuild: 20200929
  */
-void MoveForword(int speed, int time) {
-	UP_CDS_SetSpeed(1, -speed);
-	UP_CDS_SetSpeed(2, speed);
-	UP_delay_ms(time);
+void MoveStop() {
 	UP_CDS_SetSpeed(1, 0);
 	UP_CDS_SetSpeed(2, 0);
+}
+
+/**
+ * Title: MoveForword(int)
+ * args: spped - 运行速度
+ * Return: None
+ * Author: Altria
+ * Descr: 以速度spee向前行驶
+ * LastBuild: 20200928
+ */
+void MoveForword(int speed) {
+	UP_CDS_SetSpeed(1, -speed);
+	UP_CDS_SetSpeed(2, speed);
+}
+
+/**
+ * Title: SoftStart()
+ * Return: None
+ * Author: Altria
+ * Descr: 软启动函数
+ * LastBuild: 20200930
+ */
+void SoftStart() {
+	int infraredSensorLeft, infraredSensorRight;
+	while(1) {
+		infraredSensorLeft = UP_ADC_GetValue(0);
+		infraredSensorRight = UP_ADC_GetValue(1);
+		if(infraredSensorLeft >= 2500 && infraredSensorRight >= 2500) {
+			break;
+		}
+	}
+}
+
+/**
+ * Title: MoveBeforeUpStage()
+ * Return: None
+ * Author: Altria
+ * Descr: 上台前行走至可以上台的位置
+ * LastBuild: 20200929
+ */
+void MoveBeforeUpStage() {
+	// int preInfraredSensor;
+	MoveForword(SPEED_Motor);
+	UP_delay_ms(1000);
+	// while(1) {
+	// 	preInfraredSensor = UP_ADC_GetValue(0);
+	// 	// UP_delay_ms(1);
+	// 	// printf("%d\n",preInfraredSensor);
+	// 	// UP_delay_ms(200);
+	// 	// UP_LCD_ClearScreen();
+	// 	if(preInfraredSensor >= 1100) {
+	// 		// MoveStop();
+	// 		// UP_delay_ms(1500);
+	// 		break;
+	// 	}
+	// }
+	// printf("%d\n",preInfraredSensor);
+}
+
+/**
+ * Title: FirstUpStage()
+ * Return: None
+ * Author: Altria
+ * Descr: 第一次上台
+ * LastBuild: 20200930
+ */
+void FirstUpStage()
+{
+	// printf("XXXXXXXXXXXXXXXXX");
+	//前爪向下
+	UP_CDS_SetAngle(3,GEAR_ANGLE_3 - 90,SPEED_GEAR);
+	UP_CDS_SetAngle(6,GEAR_ANGLE_6 + 90,SPEED_GEAR);
+	UP_delay_ms(DELAY_UpStage);
+	
+	//前进
+	// MoveForword(SPEED_GEAR);
+	// UP_delay_ms(700);
+	// MoveStop();
+	// UP_delay_ms(1500);
+
+	//前爪复位
+	InitForepaw();
+	UP_delay_ms(DELAY_UpStage - 100);
+
+	//后爪撑地
+	UP_CDS_SetAngle(4, GEAR_ANGLE_4 - 120, SPEED_GEAR);
+	UP_CDS_SetAngle(5, GEAR_ANGLE_5 + 120, SPEED_GEAR);
+	UP_delay_ms(DELAY_UpStage + 50);
+
+	//前进
+	// MoveForword(SPEED_GEAR);
+	// UP_delay_ms(700);
+	// MoveStop();
+	// UP_delay_ms(1500);
+
+	//后爪复位
+	InitHindpaw();
+	UP_delay_ms(DELAY_UpStage);
+
+	MoveStop();
 }
 
 /**
@@ -166,6 +278,9 @@ void DebugInfraredSensor(int x,int y,int id) {
 	int AD = UP_ADC_GetValue(id);
 	// printf("begin\n");
 	UP_LCD_ShowInt(x,y,AD);	//显示红外传感器值
+	// printf("%d\n",AD);
+	UP_delay_ms(400);
+	UP_LCD_ClearScreen();
 	// printf("end\n");
 }
 
@@ -186,55 +301,15 @@ void DebugAllInfraredSensor()
 	}
 }
 
-/**
- * Title: FirstUpStage()
- * Return: None
- * Author: Altria
- * Descr: 第一次上台
- * LastBuild: 20200929
- */
-void FirstUpStage()
-{
-	//前爪向下
-	UP_CDS_SetAngle(3,400,SPEED_GEAR);
-	UP_CDS_SetAngle(6,575,SPEED_GEAR);
-	UP_delay_ms(1500);
-	
-	//后轮启动
-	MoveForword(SPEED_GEAR,700);
-	UP_delay_ms(1500);
-
-	//前爪复位
-	InitForepaw();
-	UP_delay_ms(1500);
-
-	//后爪撑地
-	UP_CDS_SetAngle(4, GEAR_ANGLE_4 - 120, SPEED_GEAR);
-	UP_CDS_SetAngle(5, GEAR_ANGLE_5 + 120, SPEED_GEAR);
-	UP_delay_ms(1500);
-
-	//前轮启动
-	MoveForword(SPEED_GEAR,700);
-	UP_delay_ms(1500);
-
-	//后爪复位
-	InitHindpaw();
-	UP_delay_ms(1500);
-}
-
 int main(void)
 {	
 	Init();
+	UP_LCD_ClearScreen();
 
-	// UP_LCD_ClearScreen();
+	//软启动
+	SoftStart();
 	
-	// DebugGearBalan();	//测试舵机平衡位置
-
-	/*******************************************软启动函数**************************************************/
-
 	//第一次上台
-	FirstUpStage();
-
-	UP_delay_ms(1000);								
-	UP_LCD_ClearLine(1);							//清除第2行字符
+	MoveBeforeUpStage();
+	FirstUpStage();	
 }
