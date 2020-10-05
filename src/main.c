@@ -1,16 +1,40 @@
 #include "UPLib\\UP_System.h"
 
+
+/***********************************************常量Begin*******************************************************/
+
 //舵机参数值3.41 约等于 1°
 const int GEAR_ANGLE_3 = 490;	//3号舵机平衡位置角度 
 const int GEAR_ANGLE_6 = 485;	//6号舵机平衡位置角度
 const int GEAR_ANGLE_4 = 511;	//4号舵机平衡位置角度
 const int GEAR_ANGLE_5 = 515;	//5号舵机平衡位置角度
 
+const int InfraredBL = 4;	//左后红外传感器
+const int InfraredFL = 5;	//左前红外传感器
+const int InfraredBR = 6;	//右后红外传感器
+const int InfraredFR = 7;	//右前红外传感器
+
 const int GEAR_ANGLE_INIT = 400; //初始化舵机变换角度
 
 const int SPEED_GEAR = 600;	//舵机速度
-const int SPEED_Motor = 320; //电机速度
+const int SPEED_Motor = 320; //上台时电机速度
+const int SPEED_Motor_Turn = 320; //转向时电机速度
+const int SPEED_MotorOnStage = 250; //上台后电机速度
 const int DELAY_UpStage = 750; //上台延时
+
+/***********************************************常量End**********************************************************/
+
+
+
+/***********************************************变量Begin********************************************************/
+
+
+
+/***********************************************变量End**********************************************************/
+
+
+
+/***********************************************声明函数Begin****************************************************/
 
 void InitSys();	//初始化系统
 void InitGear();	//初始化舵机
@@ -20,6 +44,7 @@ void InitHindpaw(); //初始化后爪
 void InitClaw();	//初始化爪子
 
 void SoftStart(); //软启动函数
+void OnStage();	//在台上的主函数
 
 void MoveBeforeUpStage(); //上台前的向前走
 void FirstUpStage();	//第一次上台
@@ -29,29 +54,41 @@ void DebugGearbalan();	//测试爪子平衡位置
 void DebugInfraredSensor(int,int,int); //测试红外传感器
 
 void MoveForword(int); //向前走
-void MoveStop(); //停下
+void MoveLeft();	//左转
+void MoveRight();	//右转
+void MoveStop(); 	//停下
 
-/**
- * Title: LcdShowInt()
- * Return: None
- * Author: Altria
- * Descr: 显示屏上显示数字x
- * LastBuild: 20200930
- */
-void LcdShowInt(int x) {
-	UP_delay_ms(400);
+int GetInfraredSenorState();	//获取红外传感器状态
+int SpeedByGraySenor();		//根据灰度传感器计算速度
+int ChangeInfrared(int); //红外传感器模拟量转话为数字量
+
+/***********************************************声明函数End******************************************************/
+
+
+int main(void)
+{	
+	InitSys();
 	UP_LCD_ClearScreen();
-	printf("%d\n",x);
+
+	//软启动
+	SoftStart();
+	
+	//第一次上台
+	MoveBeforeUpStage();
+	FirstUpStage();	
+
+	//台上瞎溜达
+	OnStage();
 }
 
 /**
- * Title: Init()
+ * Title: InitSys()
  * Return: None
  * Author: Ben
  * Descr: 初始化系统
  * LastBuild: 20200928
  */
-void Init()
+void InitSys()
 {
     /*初始化系统*/
     UP_System_Init();
@@ -166,6 +203,32 @@ void MoveForword(int speed) {
 }
 
 /**
+ * Title: MoveRight(int)
+ * args: spped - 运行速度
+ * Return: None
+ * Author: Ben
+ * Descr: 以速度spee向前行驶
+ * LastBuild: 20201005
+ */
+void MoveRight(int speed) {
+	UP_CDS_SetSpeed(1, speed);
+	UP_CDS_SetSpeed(2, speed);
+}
+
+/**
+ * Title: MoveLeft(int)
+ * args: spped - 运行速度
+ * Return: None
+ * Author: Ben
+ * Descr: 以速度spee向前行驶
+ * LastBuild: 20201005
+ */
+void MoveLeft(int speed) {
+	UP_CDS_SetSpeed(1, -speed);
+	UP_CDS_SetSpeed(2, -speed);
+}
+
+/**
  * Title: SoftStart()
  * Return: None
  * Author: Altria
@@ -175,12 +238,14 @@ void MoveForword(int speed) {
 void SoftStart() {
 	int infraredSensorLeft, infraredSensorRight;
 	while(1) {
-		infraredSensorLeft = UP_ADC_GetValue(0);
-		infraredSensorRight = UP_ADC_GetValue(1);
-		if(infraredSensorLeft >= 2500 && infraredSensorRight >= 2500) {
+		infraredSensorLeft = ChangeInfrared(0);
+		infraredSensorRight = ChangeInfrared(1);
+		printf("first: %d %d\n",infraredSensorLeft,infraredSensorRight);
+		if(infraredSensorLeft == 0 && infraredSensorRight == 0) {
 			break;
 		}
 	}
+	printf("Game Begin!\n");
 }
 
 /**
@@ -188,25 +253,11 @@ void SoftStart() {
  * Return: None
  * Author: Altria
  * Descr: 上台前行走至可以上台的位置
- * LastBuild: 20200929
+ * LastBuild: 20201004
  */
 void MoveBeforeUpStage() {
-	// int preInfraredSensor;
 	MoveForword(SPEED_Motor);
-	UP_delay_ms(1000);
-	// while(1) {
-	// 	preInfraredSensor = UP_ADC_GetValue(0);
-	// 	// UP_delay_ms(1);
-	// 	// printf("%d\n",preInfraredSensor);
-	// 	// UP_delay_ms(200);
-	// 	// UP_LCD_ClearScreen();
-	// 	if(preInfraredSensor >= 1100) {
-	// 		// MoveStop();
-	// 		// UP_delay_ms(1500);
-	// 		break;
-	// 	}
-	// }
-	// printf("%d\n",preInfraredSensor);
+	UP_delay_ms(1000);	//行走至擂台边缘
 }
 
 /**
@@ -223,12 +274,6 @@ void FirstUpStage()
 	UP_CDS_SetAngle(3,GEAR_ANGLE_3 - 90,SPEED_GEAR);
 	UP_CDS_SetAngle(6,GEAR_ANGLE_6 + 90,SPEED_GEAR);
 	UP_delay_ms(DELAY_UpStage);
-	
-	//前进
-	// MoveForword(SPEED_GEAR);
-	// UP_delay_ms(700);
-	// MoveStop();
-	// UP_delay_ms(1500);
 
 	//前爪复位
 	InitForepaw();
@@ -239,17 +284,140 @@ void FirstUpStage()
 	UP_CDS_SetAngle(5, GEAR_ANGLE_5 + 120, SPEED_GEAR);
 	UP_delay_ms(DELAY_UpStage + 50);
 
-	//前进
-	// MoveForword(SPEED_GEAR);
-	// UP_delay_ms(700);
-	// MoveStop();
-	// UP_delay_ms(1500);
-
 	//后爪复位
 	InitHindpaw();
 	UP_delay_ms(DELAY_UpStage);
 
-	MoveStop();
+	// MoveStop();
+}
+
+/**
+ * Title: GetGraySenorNum()
+ * Return: 根据灰度传感器计算的小车速度值
+ * Author: Ben
+ * Descr: 根据灰度传感器计算小车速度
+ * LastBuild: 20201005
+ */
+int SpeedByGraySenor() {
+	return SPEED_MotorOnStage + (UP_ADC_GetValue(2)-1600)/10;
+}
+
+/**
+ * Title: GetInfraredSenorState()
+ * Return: int - 返回小车状态，分为0~8状态。
+ * Author: Ben
+ * Descr: 根据红外模块的值，返回小车在台上的状态（是否在擂台边缘）
+ * LastBuild: 20201004
+ */
+int GetInfraredSenorState() {
+
+	if(ChangeInfrared(InfraredFR)==0&&ChangeInfrared(InfraredFL)==0&&ChangeInfrared(InfraredBR)==0&&ChangeInfrared(InfraredBL)==0)
+		return 0;
+	else if(ChangeInfrared(InfraredFR)==1&&ChangeInfrared(InfraredFL)==0&&ChangeInfrared(InfraredBR)==0&&ChangeInfrared(InfraredBL)==0)
+		return 1;
+	else if(ChangeInfrared(InfraredFR)==0&&ChangeInfrared(InfraredFL)==1&&ChangeInfrared(InfraredBR)==0&&ChangeInfrared(InfraredBL)==0)
+		return 2;
+	else if(ChangeInfrared(InfraredFR)==0&&ChangeInfrared(InfraredFL)==0&&ChangeInfrared(InfraredBR)==1&&ChangeInfrared(InfraredBL)==0)
+		return 3;
+	else if(ChangeInfrared(InfraredFR)==0&&ChangeInfrared(InfraredFL)==0&&ChangeInfrared(InfraredBR)==0&&ChangeInfrared(InfraredBL)==1)
+		return 4;
+	else if(ChangeInfrared(InfraredFR)==1&&ChangeInfrared(InfraredFL)==1&&ChangeInfrared(InfraredBR)==0&&ChangeInfrared(InfraredBL)==0)
+		return 5;
+	else if(ChangeInfrared(InfraredFR)==0&&ChangeInfrared(InfraredFL)==1&&ChangeInfrared(InfraredBR)==0&&ChangeInfrared(InfraredBL)==1)
+		return 6;
+	else if(ChangeInfrared(InfraredFR)==0&&ChangeInfrared(InfraredFL)==0&&ChangeInfrared(InfraredBR)==1&&ChangeInfrared(InfraredBL)==1)
+		return 7;
+	else if(ChangeInfrared(InfraredFR)==1&&ChangeInfrared(InfraredFL)==0&&ChangeInfrared(InfraredBR)==1&&ChangeInfrared(InfraredBL)==0)
+		return 8;
+	return -1;
+}
+
+/**
+ * Title: OnStage()
+ * Return: None
+ * Author: Ben
+ * Descr: 在台上的主函数
+ * LastBuild: 20201005
+ */
+void OnStage() {
+	int InfraredSensorState;
+	int DebugErrorCnt = 0;
+	while(1) {
+		InfraredSensorState = GetInfraredSenorState();
+		LcdShowInt(InfraredSensorState);
+		switch (InfraredSensorState)
+		{
+		case 0:
+			MoveForword(SpeedByGraySenor());
+			break;
+		case 1:
+			MoveLeft(SPEED_Motor_Turn);
+			break;
+		case 2:
+			MoveRight(SPEED_Motor_Turn);
+			break;
+		case 3:
+			MoveRight(SPEED_Motor_Turn);
+			break;
+		case 4:
+			MoveLeft(SPEED_Motor_Turn);
+			break;
+		case 5:
+			MoveLeft(SPEED_Motor_Turn);
+			break;
+		case 6:
+			MoveRight(SPEED_Motor_Turn);
+			break;
+		case 7:
+			MoveForword(SpeedByGraySenor());
+			break;
+		case 8:
+			MoveLeft(SPEED_Motor_Turn);
+		default:
+			DebugErrorCnt ++;
+			UP_LCD_ClearScreen();
+			printf("%d: ERROR!\n", DebugErrorCnt);
+			printf("Infrared\n");
+			break;
+		}
+	}
+	
+	//700 - 800边缘
+}
+
+/**
+ * Title: ChangeInfrared()
+ * Return: int - 返回红外传感器的值（数字量）
+ * Author: Ben
+ * Descr: 将红外传感器的模拟值改为数字量
+ * LastBuild: 20201005
+ */
+int ChangeInfrared(int id) {
+	int AD = UP_ADC_GetValue(id);
+	if(AD <= 1000) return 0;
+	else return 1;
+}
+
+
+
+
+
+/**************************************************************************************************************/
+/***********************************************DEBUG函数******************************************************/
+/**************************************************************************************************************/
+
+
+/**
+ * Title: LcdShowInt()
+ * Return: None
+ * Author: Altria
+ * Descr: 显示屏上显示数字x
+ * LastBuild: 20200930
+ */
+void LcdShowInt(int x) {
+	UP_delay_ms(400);
+	UP_LCD_ClearScreen();
+	printf("%d\n",x);
 }
 
 /**
@@ -268,14 +436,15 @@ void DebugGearBalan()
 }
 
 /**
- * Title: DebugInfraredSensor(int)
+ * Title: DebugSensor(int)
  * Return: None
  * Author: Altria
- * Descr: 调试红外传感器
- * LastBuild: 20200928
+ * Descr: 调试任意传感器，在LCD上显示传感器对应数值
+ * LastBuild: 20201004
  */
-void DebugInfraredSensor(int x,int y,int id) {
+void DebugSensor(int x,int y,int id) {
 	int AD = UP_ADC_GetValue(id);
+	// LcdShowInt(AD);
 	// printf("begin\n");
 	UP_LCD_ShowInt(x,y,AD);	//显示红外传感器值
 	// printf("%d\n",AD);
@@ -285,31 +454,18 @@ void DebugInfraredSensor(int x,int y,int id) {
 }
 
 /**
- * Title: DebugAllInfraredSensor(int)
+ * Title: DebugGrayScaleSensor()
  * Return: None
- * Author: Ben
- * Descr: 调试全部红外传感器
- * LastBuild: 20200928
+ * Author: Altria
+ * Descr: 调试灰度传感器
+ * LastBuild: 20201004
  */
-void DebugAllInfraredSensor()
-{
+void DebugGrayScaleSensor() {
+	MoveForword(300);
 	while(1) {
-		DebugInfraredSensor(1,1,0);
-		DebugInfraredSensor(1,2,1);
-		DebugInfraredSensor(1,3,3);
-		UP_delay_ms(500);
+		// printf("2: ");
+		DebugSensor(1,1,2);
+		// printf("3: ");
+		DebugSensor(2,2,3);
 	}
-}
-
-int main(void)
-{	
-	Init();
-	UP_LCD_ClearScreen();
-
-	//软启动
-	SoftStart();
-	
-	//第一次上台
-	MoveBeforeUpStage();
-	FirstUpStage();	
 }
