@@ -14,12 +14,14 @@ const int InfraredFL = 5;	//左前红外传感器
 const int InfraredBR = 6;	//右后红外传感器
 const int InfraredFR = 7;	//右前红外传感器
 
+const int InfraredF = 3;		//前侧红外传感器
+
 const int GEAR_ANGLE_INIT = 400; //初始化舵机变换角度
 
 const int SPEED_GEAR = 600;	//舵机速度
 const int SPEED_Motor = 320; //上台时电机速度
-const int SPEED_Motor_Turn = 320; //转向时电机速度
-const int SPEED_MotorOnStage = 250; //上台后电机速度
+const int SPEED_Motor_Turn = 380; //转向时电机速度
+const int SPEED_MotorOnStage = 280; //上台后电机速度
 const int DELAY_UpStage = 750; //上台延时
 
 /***********************************************常量End**********************************************************/
@@ -345,41 +347,59 @@ void OnStage() {
 	while(1) {
 		InfraredSensorState = GetInfraredSenorState();
 		LcdShowInt(InfraredSensorState);
-		switch (InfraredSensorState)
-		{
-		case 0:
-			MoveForword(SpeedByGraySenor());
-			break;
-		case 1:
-			MoveLeft(SPEED_Motor_Turn);
-			break;
-		case 2:
-			MoveRight(SPEED_Motor_Turn);
-			break;
-		case 3:
-			MoveRight(SPEED_Motor_Turn);
-			break;
-		case 4:
-			MoveLeft(SPEED_Motor_Turn);
-			break;
-		case 5:
-			MoveLeft(SPEED_Motor_Turn);
-			break;
-		case 6:
-			MoveRight(SPEED_Motor_Turn);
-			break;
-		case 7:
-			MoveForword(SpeedByGraySenor());
-			break;
-		case 8:
-			MoveLeft(SPEED_Motor_Turn);
-		default:
-			DebugErrorCnt ++;
-			UP_LCD_ClearScreen();
-			printf("%d: ERROR!\n", DebugErrorCnt);
-			printf("Infrared\n");
-			break;
-		}
+		// if (ChangeInfrared(InfraredB)==1) {	//后面撞到物体
+		// 	if () {	//小车没有倾斜 ---------------------------------------------------------------
+		// 		//暴力推 ------------------------------------------------------------------------
+		// 	}
+		// 	else {
+		// 		//倒车---------------------------------------------------------------------------
+		// 	}
+		// }
+		// else if (ChangeInfrared(InfraredF)==1) {	//前面撞到物体
+		// 	if () {	//小车没有倾斜 ---------------------------------------------------------------
+		// 		//暴力推 ------------------------------------------------------------------------
+		// 	}
+		// 	else {
+		// 		//倒车---------------------------------------------------------------------------
+		// 	}
+		// }
+		// else {
+			switch (InfraredSensorState)
+			{
+			case 0:
+				MoveForword(SpeedByGraySenor());
+				break;
+			case 1:
+				MoveLeft(SPEED_Motor_Turn);
+				break;
+			case 2:
+				MoveRight(SPEED_Motor_Turn);
+				break;
+			case 3:
+				MoveRight(SPEED_Motor_Turn);
+				break;
+			case 4:
+				MoveLeft(SPEED_Motor_Turn);
+				break;
+			case 5:
+				MoveLeft(SPEED_Motor_Turn);
+				break;
+			case 6:
+				MoveRight(SPEED_Motor_Turn);
+				break;
+			case 7:
+				MoveForword(SpeedByGraySenor());
+				break;
+			case 8:
+				MoveLeft(SPEED_Motor_Turn);
+			default:
+				DebugErrorCnt ++;
+				UP_LCD_ClearScreen();
+				printf("%d: ERROR!\n", DebugErrorCnt);
+				printf("Infrared\n");
+				break;
+			}
+		// }
 	}
 	
 	//700 - 800边缘
