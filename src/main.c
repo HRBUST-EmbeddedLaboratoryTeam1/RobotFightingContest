@@ -1,43 +1,59 @@
 #include "UPLib\\UP_System.h"
 
 
+/**************************************************************************************************************/
 /***********************************************常量Begin*******************************************************/
+/**************************************************************************************************************/
 
-//舵机参数值3.41 约等于 1°
+//舵机编号
 const int GEAR_ANGLE_3 = 490;	//3号舵机平衡位置角度 
 const int GEAR_ANGLE_6 = 485;	//6号舵机平衡位置角度
 const int GEAR_ANGLE_4 = 511;	//4号舵机平衡位置角度
 const int GEAR_ANGLE_5 = 515;	//5号舵机平衡位置角度
 
-const int InfraredBL = 4;	//左后红外传感器
-const int InfraredFL = 5;	//左前红外传感器
-const int InfraredBR = 6;	//右后红外传感器
-const int InfraredFR = 7;	//右前红外传感器
+//红外传感器编号
+const int INFRARED_BL = 4;	//左后红外传感器
+const int INFRARED_FL = 5;	//左前红外传感器
+const int INFRARED_BR = 6;	//右后红外传感器
+const int INFRARED_FR = 7;	//右前红外传感器
+const int INFRARED_F = 3;		//前侧红外传感器
 
-const int InfraredF = 3;		//前侧红外传感器
-
+//舵机初始化角度
 const int GEAR_ANGLE_INIT = 400; //初始化舵机变换角度
 
+//速度
 const int SPEED_GEAR = 600;	//舵机速度
-const int SPEED_Motor = 320; //上台时电机速度
-const int SPEED_Motor_Turn = 350; //转向时电机速度
-const int SPEED_MotorOnStage = 300; //上台后电机速度
-const int DELAY_UpStage = 750; //上台延时
+const int SPEED_MOTOR = 400; //上台时电机速度
+const int SPEED_MOTOR_TURN = 450; //转向时电机速度
+const int SPEED_MOTOR_ON_STAGE = 580; //上台后电机速度
 
+//延时
+const int DELAY_UP_STAGE = 750; //上台延时
+const int DELAY_UP_BACK = 3; //反转延迟
+
+/**************************************************************************************************************/
 /***********************************************常量End**********************************************************/
+/**************************************************************************************************************/
 
 
 
+/**************************************************************************************************************/
 /***********************************************变量Begin********************************************************/
+/**************************************************************************************************************/
 
+bool G_flagTurnF = FALSE;	//记录是否需要刹车
 
-
+/**************************************************************************************************************/
 /***********************************************变量End**********************************************************/
+/**************************************************************************************************************/
 
 
 
-/***********************************************声明函数Begin****************************************************/
+/**************************************************************************************************************/
+/***********************************************声明函数Begin***************************************************/
+/**************************************************************************************************************/
 
+//初始化函数
 void InitSys();	//初始化系统
 void InitGear();	//初始化舵机
 void InitMotor();	//初始化电机
@@ -45,31 +61,39 @@ void InitForepaw(); //初始化前爪
 void InitHindpaw(); //初始化后爪 
 void InitClaw();	//初始化爪子
 
+//移动函数
+void MoveForword(int); //向前走
+void MoveLeft(int);	//左转
+void MoveRight(int);	//右转
+void MoveQuickStop(int);    //反转
+void MoveStop(); 	//停下
+
 void SoftStart(); //软启动函数
 void OnStage();	//在台上的主函数
 
 void MoveBeforeUpStage(); //上台前的向前走
 void FirstUpStage();	//第一次上台
 
-void LcdShowInt(int); //LCD屏幕上显示数字
-void DebugGearbalan();	//测试爪子平衡位置
-void DebugInfraredSensor(int,int,int); //测试红外传感器
-
-void MoveForword(int); //向前走
-void MoveLeft(int);	//左转
-void MoveRight(int);	//右转
-void MoveBack(int);    //反转
-void MoveStop(); 	//停下
-
 int GetInfraredSenorState();	//获取红外传感器状态
 int SpeedByGraySenor();		//根据灰度传感器计算速度
 int ChangeInfrared(int); //红外传感器模拟量转话为数字量
 
+void ClawDown();	//放下前爪
+
+//Debug函数
+void LcdShowInt(int); //LCD屏幕上显示数字
+void DebugGearbalan();	//测试爪子平衡位置
+void DebugInfraredSensor(int,int,int); //测试红外传感器
+
+/***************************************************************************************************************/
 /***********************************************声明函数End******************************************************/
+/***************************************************************************************************************/
 
 
 
+/***************************************************************************************************************/
 /***********************************************主函数Begin******************************************************/
+/***************************************************************************************************************/
 
 int main(void)
 {	
@@ -87,11 +111,15 @@ int main(void)
 	OnStage();
 }
 
+/**************************************************************************************************************/
 /**********************************************主函数End********************************************************/
+/**************************************************************************************************************/
 
 
 
+/***************************************************************************************************************/
 /**********************************************初始化函数Begin***************************************************/
+/***************************************************************************************************************/
 
 /**
  * Title: InitSys()
@@ -108,7 +136,7 @@ void InitSys()
 	printf("DEMO 1.0\n");	//显示Demo名称
 	UP_LCD_ShowCharacterString(0,1,"BenFromHRBUST");	//显示作者团队
 	UP_LCD_ShowCharacterString(0,2,"机器人格斗大赛");	//显示（我也不知道是啥）
-	UP_delay_ms(2000);	//延时2s    
+	UP_delay_ms(1000);	//延时2s    
 	UP_LCD_ClearScreen();	//清屏
 
 	//初始化舵机
@@ -189,11 +217,15 @@ void InitClaw()
 	UP_delay_ms(2000);
 }
 
+/****************************************************************************************************************/
 /***********************************************初始化函数End*****************************************************/
+/****************************************************************************************************************/
 
 
 
+/***************************************************************************************************************/
 /***********************************************移动函数Begin****************************************************/
+/***************************************************************************************************************/
 /**
  * Title: MoveStop()
  * Return: None
@@ -210,24 +242,38 @@ void MoveStop() {
  * Title: MoveForword(int)
  * args: spped - 运行速度
  * Return: None
- * Author: Altria
- * Descr: 以速度spee向前行驶
- * LastBuild: 20200928
+ * Author: Ben
+ * Descr: 以速度speed向前行驶
+ * LastBuild: 20201006
  */
 void MoveForword(int speed) {
 	UP_CDS_SetSpeed(1, -speed);
 	UP_CDS_SetSpeed(2, speed);
+	G_flagTurnF = TRUE;
 }
 
 /**
  * Title: MoveBack(int)
  * args: spped - 运行速度
  * Return: None
- * Author: Altria
- * Descr: 以速度speed反转，抵消惯性影响
+ * Author: Ben
+ * Descr: 以速度speed向后行驶
  * LastBuild: 20201006
  */
 void MoveBack(int speed) {
+	UP_CDS_SetSpeed(1, speed);
+	UP_CDS_SetSpeed(2, -speed);
+}
+
+/**
+ * Title: MoveQuickStop(int)
+ * args: spped - 运行速度
+ * Return: None
+ * Author: Ben
+ * Descr: 以速度speed反转，抵消惯性影响，快速刹车
+ * LastBuild: 20201006
+ */
+void MoveQuickStop(int speed) {
 	UP_CDS_SetSpeed(1, speed);
 	UP_CDS_SetSpeed(2, -speed);
 }
@@ -237,14 +283,17 @@ void MoveBack(int speed) {
  * args: spped - 运行速度
  * Return: None
  * Author: Ben
- * Descr: 以速度spee向前行驶
+ * Descr: 以速度speed向右转行驶
  * LastBuild: 20201006
  */
 void MoveRight(int speed) {
-	MoveBack(SPEED_MotorOnStage);
-	UP_delay_ms(5);
-	UP_CDS_SetSpeed(1, speed);
+	if (G_flagTurnF == TRUE) {
+		MoveQuickStop(SPEED_MOTOR_ON_STAGE);
+		UP_delay_ms(DELAY_UP_BACK);
+	}
 	UP_CDS_SetSpeed(2, speed);
+	UP_CDS_SetSpeed(1, speed);
+	G_flagTurnF = FALSE;
 }
 
 /**
@@ -252,17 +301,22 @@ void MoveRight(int speed) {
  * args: spped - 运行速度
  * Return: None
  * Author: Ben
- * Descr: 以速度spee向前行驶
+ * Descr: 以速度speed左转行驶
  * LastBuild: 20201006
  */
 void MoveLeft(int speed) {
-	MoveBack(SPEED_MotorOnStage);
-	UP_delay_ms(5);
+	if (G_flagTurnF == TRUE) {
+		MoveQuickStop(SPEED_MOTOR_ON_STAGE);
+		UP_delay_ms(DELAY_UP_BACK);
+	}
 	UP_CDS_SetSpeed(1, -speed);
 	UP_CDS_SetSpeed(2, -speed);
+	G_flagTurnF = FALSE;
 }
 
+/***************************************************************************************************************/
 /***********************************************移动函数End******************************************************/
+/***************************************************************************************************************/
 
 
 
@@ -270,7 +324,7 @@ void MoveLeft(int speed) {
 /**
  * Title: SoftStart()
  * Return: None
- * Author: Altria
+ * Author: Alt、ria
  * Descr: 软启动函数
  * LastBuild: 20200930
  */
@@ -295,7 +349,7 @@ void SoftStart() {
  * LastBuild: 20201004
  */
 void MoveBeforeUpStage() {
-	MoveForword(SPEED_Motor);
+	MoveForword(SPEED_MOTOR);
 	UP_delay_ms(1000);	//行走至擂台边缘
 }
 
@@ -312,22 +366,28 @@ void FirstUpStage()
 	//前爪向下
 	UP_CDS_SetAngle(3,GEAR_ANGLE_3 - 90,SPEED_GEAR);
 	UP_CDS_SetAngle(6,GEAR_ANGLE_6 + 90,SPEED_GEAR);
-	UP_delay_ms(DELAY_UpStage);
+	UP_delay_ms(DELAY_UP_STAGE);
 
 	//前爪复位
 	InitForepaw();
-	UP_delay_ms(DELAY_UpStage - 100);
+	UP_delay_ms(DELAY_UP_STAGE - 100);
 
 	//后爪撑地
 	UP_CDS_SetAngle(4, GEAR_ANGLE_4 - 120, SPEED_GEAR);
 	UP_CDS_SetAngle(5, GEAR_ANGLE_5 + 120, SPEED_GEAR);
-	UP_delay_ms(DELAY_UpStage + 50);
+	UP_delay_ms(DELAY_UP_STAGE + 50);
 
 	//后爪复位
 	InitHindpaw();
-	UP_delay_ms(DELAY_UpStage);
+	UP_delay_ms(DELAY_UP_STAGE);
 
-	// MoveStop();
+	//进入攻击状态（前爪放下）
+	ClawDown();
+}
+
+void ClawDown() {
+	UP_CDS_SetAngle(3,GEAR_ANGLE_3,SPEED_GEAR);
+	UP_CDS_SetAngle(6,GEAR_ANGLE_6,SPEED_GEAR);
 }
 
 /**
@@ -338,7 +398,8 @@ void FirstUpStage()
  * LastBuild: 20201005
  */
 int SpeedByGraySenor() {
-	return SPEED_MotorOnStage + (UP_ADC_GetValue(2)-1600)/10;
+	int speedTmp = SPEED_MOTOR_ON_STAGE + (UP_ADC_GetValue(2)-1600)/10;
+	return speedTmp > 600 ? 600 : speedTmp;
 }
 
 /**
@@ -350,23 +411,23 @@ int SpeedByGraySenor() {
  */
 int GetInfraredSenorState() {
 
-	if(ChangeInfrared(InfraredFR)==0&&ChangeInfrared(InfraredFL)==0&&ChangeInfrared(InfraredBR)==0&&ChangeInfrared(InfraredBL)==0)
+	if(ChangeInfrared(INFRARED_FR)==0&&ChangeInfrared(INFRARED_FL)==0&&ChangeInfrared(INFRARED_BR)==0&&ChangeInfrared(INFRARED_BL)==0)
 		return 0;
-	else if(ChangeInfrared(InfraredFR)==1&&ChangeInfrared(InfraredFL)==0&&ChangeInfrared(InfraredBR)==0&&ChangeInfrared(InfraredBL)==0)
+	else if(ChangeInfrared(INFRARED_FR)==1&&ChangeInfrared(INFRARED_FL)==0&&ChangeInfrared(INFRARED_BR)==0&&ChangeInfrared(INFRARED_BL)==0)
 		return 1;
-	else if(ChangeInfrared(InfraredFR)==0&&ChangeInfrared(InfraredFL)==1&&ChangeInfrared(InfraredBR)==0&&ChangeInfrared(InfraredBL)==0)
+	else if(ChangeInfrared(INFRARED_FR)==0&&ChangeInfrared(INFRARED_FL)==1&&ChangeInfrared(INFRARED_BR)==0&&ChangeInfrared(INFRARED_BL)==0)
 		return 2;
-	else if(ChangeInfrared(InfraredFR)==0&&ChangeInfrared(InfraredFL)==0&&ChangeInfrared(InfraredBR)==1&&ChangeInfrared(InfraredBL)==0)
+	else if(ChangeInfrared(INFRARED_FR)==0&&ChangeInfrared(INFRARED_FL)==0&&ChangeInfrared(INFRARED_BR)==1&&ChangeInfrared(INFRARED_BL)==0)
 		return 3;
-	else if(ChangeInfrared(InfraredFR)==0&&ChangeInfrared(InfraredFL)==0&&ChangeInfrared(InfraredBR)==0&&ChangeInfrared(InfraredBL)==1)
+	else if(ChangeInfrared(INFRARED_FR)==0&&ChangeInfrared(INFRARED_FL)==0&&ChangeInfrared(INFRARED_BR)==0&&ChangeInfrared(INFRARED_BL)==1)
 		return 4;
-	else if(ChangeInfrared(InfraredFR)==1&&ChangeInfrared(InfraredFL)==1&&ChangeInfrared(InfraredBR)==0&&ChangeInfrared(InfraredBL)==0)
+	else if(ChangeInfrared(INFRARED_FR)==1&&ChangeInfrared(INFRARED_FL)==1&&ChangeInfrared(INFRARED_BR)==0&&ChangeInfrared(INFRARED_BL)==0)
 		return 5;
-	else if(ChangeInfrared(InfraredFR)==0&&ChangeInfrared(InfraredFL)==1&&ChangeInfrared(InfraredBR)==0&&ChangeInfrared(InfraredBL)==1)
+	else if(ChangeInfrared(INFRARED_FR)==0&&ChangeInfrared(INFRARED_FL)==1&&ChangeInfrared(INFRARED_BR)==0&&ChangeInfrared(INFRARED_BL)==1)
 		return 6;
-	else if(ChangeInfrared(InfraredFR)==0&&ChangeInfrared(InfraredFL)==0&&ChangeInfrared(InfraredBR)==1&&ChangeInfrared(InfraredBL)==1)
+	else if(ChangeInfrared(INFRARED_FR)==0&&ChangeInfrared(INFRARED_FL)==0&&ChangeInfrared(INFRARED_BR)==1&&ChangeInfrared(INFRARED_BL)==1)
 		return 7;
-	else if(ChangeInfrared(InfraredFR)==1&&ChangeInfrared(InfraredFL)==0&&ChangeInfrared(InfraredBR)==1&&ChangeInfrared(InfraredBL)==0)
+	else if(ChangeInfrared(INFRARED_FR)==1&&ChangeInfrared(INFRARED_FL)==0&&ChangeInfrared(INFRARED_BR)==1&&ChangeInfrared(INFRARED_BL)==0)
 		return 8;
 	return -1;
 }
@@ -386,7 +447,7 @@ void OnStage() {
 		// UP_delay_ms(400);
 		// UP_LCD_ClearScreen();
 		InfraredSensorState = GetInfraredSenorState();
-		printf("%d\n",InfraredSensorState);
+		// printf("%d\n",InfraredSensorState);
 		// LcdShowInt(InfraredSensorState);
 		// if (ChangeInfrared(InfraredB)==1) {	//后面撞到物体
 		// 	if () {	//小车没有倾斜 ---------------------------------------------------------------
@@ -396,7 +457,7 @@ void OnStage() {
 		// 		//倒车---------------------------------------------------------------------------
 		// 	}
 		// }
-		// else if (ChangeInfrared(InfraredF)==1) {	//前面撞到物体
+		// else if (ChangeInfrared(INFRARED_F)==1) {	//前面撞到物体
 		// 	if () {	//小车没有倾斜 ---------------------------------------------------------------
 		// 		//暴力推 ------------------------------------------------------------------------
 		// 	}
@@ -408,32 +469,38 @@ void OnStage() {
 			switch (InfraredSensorState)
 			{
 			case 0:
-				MoveForword(SPEED_MotorOnStage);
+				// MoveForword(SpeedByGraySenor());
+				// G_flagTurnF = FALSE;
+				MoveForword(SPEED_MOTOR_TURN);
 				break;
 			case 1:
-				MoveLeft(SPEED_Motor_Turn);
+				MoveLeft(SPEED_MOTOR_TURN);
 				break;
 			case 2:
-				MoveRight(SPEED_Motor_Turn);
+				MoveRight(SPEED_MOTOR_TURN);
 				break;
 			case 3:
-				MoveRight(SPEED_Motor_Turn);
+				// G_flagTurnF = FALSE;
+				MoveForword(SPEED_MOTOR_TURN);
 				break;
 			case 4:
-				MoveLeft(SPEED_Motor_Turn);
+				// G_flagTurnF = FALSE;
+				MoveForword(SPEED_MOTOR_TURN);
 				break;
 			case 5:
-				MoveLeft(SPEED_Motor_Turn);
+				MoveRight(SPEED_MOTOR_TURN);
 				break;
 			case 6:
-				MoveRight(SPEED_Motor_Turn);
+				MoveRight(SPEED_MOTOR_TURN);
 				break;
 			case 7:
-				MoveForword(SPEED_MotorOnStage);
+				// MoveForword(SpeedByGraySenor());
+				// G_flagTurnF = FALSE;
+				MoveForword(SPEED_MOTOR_TURN);
 				break;
 			case 8:
-				MoveLeft(SPEED_Motor_Turn);
-				// UP_delay_ms(500);
+				MoveLeft(SPEED_MOTOR_TURN);
+				break;
 			default:
 				DebugErrorCnt ++;
 				UP_LCD_ClearScreen();
