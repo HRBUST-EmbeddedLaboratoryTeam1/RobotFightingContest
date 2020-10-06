@@ -20,8 +20,8 @@ const int GEAR_ANGLE_INIT = 400; //初始化舵机变换角度
 
 const int SPEED_GEAR = 600;	//舵机速度
 const int SPEED_Motor = 320; //上台时电机速度
-const int SPEED_Motor_Turn = 380; //转向时电机速度
-const int SPEED_MotorOnStage = 280; //上台后电机速度
+const int SPEED_Motor_Turn = 350; //转向时电机速度
+const int SPEED_MotorOnStage = 300; //上台后电机速度
 const int DELAY_UpStage = 750; //上台延时
 
 /***********************************************常量End**********************************************************/
@@ -56,8 +56,9 @@ void DebugGearbalan();	//测试爪子平衡位置
 void DebugInfraredSensor(int,int,int); //测试红外传感器
 
 void MoveForword(int); //向前走
-void MoveLeft();	//左转
-void MoveRight();	//右转
+void MoveLeft(int);	//左转
+void MoveRight(int);	//右转
+void MoveBack(int);    //反转
 void MoveStop(); 	//停下
 
 int GetInfraredSenorState();	//获取红外传感器状态
@@ -66,6 +67,9 @@ int ChangeInfrared(int); //红外传感器模拟量转话为数字量
 
 /***********************************************声明函数End******************************************************/
 
+
+
+/***********************************************主函数Begin******************************************************/
 
 int main(void)
 {	
@@ -82,6 +86,12 @@ int main(void)
 	//台上瞎溜达
 	OnStage();
 }
+
+/**********************************************主函数End********************************************************/
+
+
+
+/**********************************************初始化函数Begin***************************************************/
 
 /**
  * Title: InitSys()
@@ -179,6 +189,11 @@ void InitClaw()
 	UP_delay_ms(2000);
 }
 
+/***********************************************初始化函数End*****************************************************/
+
+
+
+/***********************************************移动函数Begin****************************************************/
 /**
  * Title: MoveStop()
  * Return: None
@@ -205,14 +220,29 @@ void MoveForword(int speed) {
 }
 
 /**
+ * Title: MoveBack(int)
+ * args: spped - 运行速度
+ * Return: None
+ * Author: Altria
+ * Descr: 以速度speed反转，抵消惯性影响
+ * LastBuild: 20201006
+ */
+void MoveBack(int speed) {
+	UP_CDS_SetSpeed(1, speed);
+	UP_CDS_SetSpeed(2, -speed);
+}
+
+/**
  * Title: MoveRight(int)
  * args: spped - 运行速度
  * Return: None
  * Author: Ben
  * Descr: 以速度spee向前行驶
- * LastBuild: 20201005
+ * LastBuild: 20201006
  */
 void MoveRight(int speed) {
+	MoveBack(SPEED_MotorOnStage);
+	UP_delay_ms(5);
 	UP_CDS_SetSpeed(1, speed);
 	UP_CDS_SetSpeed(2, speed);
 }
@@ -223,12 +253,19 @@ void MoveRight(int speed) {
  * Return: None
  * Author: Ben
  * Descr: 以速度spee向前行驶
- * LastBuild: 20201005
+ * LastBuild: 20201006
  */
 void MoveLeft(int speed) {
+	MoveBack(SPEED_MotorOnStage);
+	UP_delay_ms(5);
 	UP_CDS_SetSpeed(1, -speed);
 	UP_CDS_SetSpeed(2, -speed);
 }
+
+/***********************************************移动函数End******************************************************/
+
+
+
 
 /**
  * Title: SoftStart()
@@ -308,7 +345,7 @@ int SpeedByGraySenor() {
  * Title: GetInfraredSenorState()
  * Return: int - 返回小车状态，分为0~8状态。
  * Author: Ben
- * Descr: 根据红外模块的值，返回小车在台上的状态（是否在擂台边缘）
+ * Descr: 根据红外模块的值，返回小车在台上的状态（是否在擂台边缘） 
  * LastBuild: 20201004
  */
 int GetInfraredSenorState() {
@@ -339,14 +376,18 @@ int GetInfraredSenorState() {
  * Return: None
  * Author: Ben
  * Descr: 在台上的主函数
- * LastBuild: 20201005
+ * LastBuild: 20201006
  */
 void OnStage() {
 	int InfraredSensorState;
 	int DebugErrorCnt = 0;
 	while(1) {
+		// printf("%d %d %d %d\n",UP_ADC_GetValue(4),UP_ADC_GetValue(5),UP_ADC_GetValue(6),UP_ADC_GetValue(7));
+		// UP_delay_ms(400);
+		// UP_LCD_ClearScreen();
 		InfraredSensorState = GetInfraredSenorState();
-		LcdShowInt(InfraredSensorState);
+		printf("%d\n",InfraredSensorState);
+		// LcdShowInt(InfraredSensorState);
 		// if (ChangeInfrared(InfraredB)==1) {	//后面撞到物体
 		// 	if () {	//小车没有倾斜 ---------------------------------------------------------------
 		// 		//暴力推 ------------------------------------------------------------------------
@@ -367,7 +408,7 @@ void OnStage() {
 			switch (InfraredSensorState)
 			{
 			case 0:
-				MoveForword(SpeedByGraySenor());
+				MoveForword(SPEED_MotorOnStage);
 				break;
 			case 1:
 				MoveLeft(SPEED_Motor_Turn);
@@ -388,10 +429,11 @@ void OnStage() {
 				MoveRight(SPEED_Motor_Turn);
 				break;
 			case 7:
-				MoveForword(SpeedByGraySenor());
+				MoveForword(SPEED_MotorOnStage);
 				break;
 			case 8:
 				MoveLeft(SPEED_Motor_Turn);
+				// UP_delay_ms(500);
 			default:
 				DebugErrorCnt ++;
 				UP_LCD_ClearScreen();
