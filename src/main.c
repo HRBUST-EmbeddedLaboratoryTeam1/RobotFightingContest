@@ -456,12 +456,12 @@ int GetInfraredSenorState() {
 /**
  * Title: GetGraySenorState()
  * Return: int - 返回小车灰度传感器状态，共0~1种
- * Author: Altria
+ * Author: Ben
  * Descr: 根据灰度传感器的值，返回小车在台上的状态（推箱子时是否会掉下去） 
  * LastBuild: 20201007
  */
 int GetGraySenorState() {
-	int graySenorFL,graySenorFR,graySenorBL,graySenorBR;
+	int graySenorFL, graySenorFR, graySenorBL, graySenorBR;
 	graySenorFL = UP_ADC_GetValue(GRAY_FL);
 	graySenorFR = UP_ADC_GetValue(GRAY_FR);
 	graySenorBL = UP_ADC_GetValue(GRAY_BL);
@@ -474,15 +474,12 @@ int GetGraySenorState() {
 	//后面快下去了
 	if(graySenorBL < 600 || graySenorBR < 400) {
 		return 0;
-		// MoveForword(SPEED_MOTOR_ON_STAGE);
-		// UP_delay_ms(100);
 	}
 	//前面快掉下来了
 	else if(graySenorFL < 500 || graySenorFR < 450){
 		return 1;
-		// MoveBack(SPEED_MOTOR_ON_STAGE);
-		// UP_delay_ms(100);
-	}	
+	}
+	return -1;
 }
 
 /**
@@ -498,7 +495,8 @@ void OnStage() {
 	int DebugErrorCnt = 0;
 	while(1) {
 		GraySensorStateOnStage = GetGraySenorState();
-		// printf("%d\n",GraySensorStateOnStage);
+
+		//判断是否快掉下去
 		if(GraySensorStateOnStage == 0) { //后面快掉下去
 			MoveForword(SPEED_MOTOR_ON_STAGE);
 			UP_delay_ms(1000);
@@ -507,7 +505,7 @@ void OnStage() {
 			UP_delay_ms(1000);
 		}
 		//转向，干他
-		if (ChangeInfrared(INFRARED_F)==0) {		//前面检测到物体
+		else if (ChangeInfrared(INFRARED_F)==0) {	//前面检测到物体
 			MoveForword(SPEED_MOTOR_ATTACK);
 		}
 		else if (ChangeInfrared(INFRARED_B)==0) {	//后面检测物体
