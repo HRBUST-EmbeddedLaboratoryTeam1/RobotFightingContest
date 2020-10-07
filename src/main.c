@@ -11,12 +11,19 @@ const int GEAR_ANGLE_6 = 485;	//6号舵机平衡位置角度
 const int GEAR_ANGLE_4 = 511;	//4号舵机平衡位置角度
 const int GEAR_ANGLE_5 = 515;	//5号舵机平衡位置角度
 
-//红外传感器编号
+//传感器编号
 const int INFRARED_BL = 4;	//左后红外传感器
 const int INFRARED_FL = 5;	//左前红外传感器
 const int INFRARED_BR = 6;	//右后红外传感器
 const int INFRARED_FR = 7;	//右前红外传感器
-const int INFRARED_F = 3;		//前侧红外传感器
+const int INFRARED_F = 8;	//前侧红外传感器
+const int INFRARED_B = 3;	//后侧红外传感器
+const int INFRARED_L = 1;   //左边红外传感器
+const int INFRARED_R = 0; 	//右边红外传感器
+const int GRAY_BL = 10;		//左后灰度传感器
+const int GRAY_FL = 9;		//左前灰度传感器
+const int GRAY_BR = 11;		//右后灰度传感器
+const int GRAY_FR = 2;		//右前灰度传感器
 
 //舵机初始化角度
 const int GEAR_ANGLE_INIT = 400; //初始化舵机变换角度
@@ -25,7 +32,9 @@ const int GEAR_ANGLE_INIT = 400; //初始化舵机变换角度
 const int SPEED_GEAR = 600;	//舵机速度
 const int SPEED_MOTOR = 400; //上台时电机速度
 const int SPEED_MOTOR_TURN = 450; //转向时电机速度
-const int SPEED_MOTOR_ON_STAGE = 580; //上台后电机速度
+const int SPEED_MOTOR_ON_STAGE = 450; //上台后电机速度
+const int SPEED_MOTOR_ATTACK = 600;	//上台后的攻击速度
+const int SPEED_MOTOR_TURN_ATTACK = 500;	//上台后的转向攻击速度
 
 //延时
 const int DELAY_UP_STAGE = 750; //上台延时
@@ -54,7 +63,7 @@ bool G_flagTurnF = FALSE;	//记录是否需要刹车
 /**************************************************************************************************************/
 
 //初始化函数
-void InitSys();	//初始化系统
+void InitSys();		//初始化系统
 void InitGear();	//初始化舵机
 void InitMotor();	//初始化电机
 void InitForepaw(); //初始化前爪
@@ -62,26 +71,26 @@ void InitHindpaw(); //初始化后爪
 void InitClaw();	//初始化爪子
 
 //移动函数
-void MoveForword(int); //向前走
-void MoveLeft(int);	//左转
-void MoveRight(int);	//右转
+void MoveForword(int); 		//向前走
+void MoveLeft(int);			//左转
+void MoveRight(int);		//右转
 void MoveQuickStop(int);    //反转
-void MoveStop(); 	//停下
+void MoveStop(); 			//停下
 
-void SoftStart(); //软启动函数
-void OnStage();	//在台上的主函数
+void SoftStart(); 	//软启动函数
+void OnStage();		//在台上的主函数
 
-void MoveBeforeUpStage(); //上台前的向前走
-void FirstUpStage();	//第一次上台
+void MoveBeforeUpStage(); 	//上台前的向前走
+void FirstUpStage();		//第一次上台
 
 int GetInfraredSenorState();	//获取红外传感器状态
-int SpeedByGraySenor();		//根据灰度传感器计算速度
-int ChangeInfrared(int); //红外传感器模拟量转话为数字量
+int ChangeInfrared(int); 		//红外传感器模拟量转话为数字量
 
-void ClawDown();	//放下前爪
+void ClawDownF();	//放下前爪
+void ClawDownB();	//放下后爪
 
 //Debug函数
-void LcdShowInt(int); //LCD屏幕上显示数字
+void LcdShowInt(int); 	//LCD屏幕上显示数字
 void DebugGearbalan();	//测试爪子平衡位置
 void DebugInfraredSensor(int,int,int); //测试红外传感器
 
@@ -136,7 +145,7 @@ void InitSys()
 	printf("DEMO 1.0\n");	//显示Demo名称
 	UP_LCD_ShowCharacterString(0,1,"BenFromHRBUST");	//显示作者团队
 	UP_LCD_ShowCharacterString(0,2,"机器人格斗大赛");	//显示（我也不知道是啥）
-	UP_delay_ms(1000);	//延时2s    
+	UP_delay_ms(500);	//延时2s    
 	UP_LCD_ClearScreen();	//清屏
 
 	//初始化舵机
@@ -331,9 +340,9 @@ void MoveLeft(int speed) {
 void SoftStart() {
 	int infraredSensorLeft, infraredSensorRight;
 	while(1) {
-		infraredSensorLeft = ChangeInfrared(0);
-		infraredSensorRight = ChangeInfrared(1);
-		printf("first: %d %d\n",infraredSensorLeft,infraredSensorRight);
+		infraredSensorLeft = ChangeInfrared(1);
+		infraredSensorRight = ChangeInfrared(0);
+		// printf("first: %d %d\n",infraredSensorLeft,infraredSensorRight);
 		if(infraredSensorLeft == 0 && infraredSensorRight == 0) {
 			break;
 		}
@@ -377,29 +386,35 @@ void FirstUpStage()
 	UP_CDS_SetAngle(5, GEAR_ANGLE_5 + 120, SPEED_GEAR);
 	UP_delay_ms(DELAY_UP_STAGE + 50);
 
-	//后爪复位
-	InitHindpaw();
-	UP_delay_ms(DELAY_UP_STAGE);
-
 	//进入攻击状态（前爪放下）
-	ClawDown();
+	ClawDownF();
+	ClawDownB();
+	UP_delay_ms(DELAY_UP_STAGE);
 }
 
-void ClawDown() {
+
+/**
+ * Title: ClawDownF()
+ * Return: None
+ * Author: Ben
+ * Descr: 放下前爪
+ * LastBuild: 20201007
+ */
+void ClawDownF() {
 	UP_CDS_SetAngle(3,GEAR_ANGLE_3,SPEED_GEAR);
 	UP_CDS_SetAngle(6,GEAR_ANGLE_6,SPEED_GEAR);
 }
 
 /**
- * Title: GetGraySenorNum()
- * Return: 根据灰度传感器计算的小车速度值
+ * Title: ClawDownB()
+ * Return: None
  * Author: Ben
- * Descr: 根据灰度传感器计算小车速度
- * LastBuild: 20201005
+ * Descr: 放下后爪
+ * LastBuild: 20201007
  */
-int SpeedByGraySenor() {
-	int speedTmp = SPEED_MOTOR_ON_STAGE + (UP_ADC_GetValue(2)-1600)/10;
-	return speedTmp > 600 ? 600 : speedTmp;
+void ClawDownB() {
+	UP_CDS_SetAngle(4,GEAR_ANGLE_4,SPEED_GEAR);
+	UP_CDS_SetAngle(5,GEAR_ANGLE_5,SPEED_GEAR);
 }
 
 /**
@@ -437,41 +452,35 @@ int GetInfraredSenorState() {
  * Return: None
  * Author: Ben
  * Descr: 在台上的主函数
- * LastBuild: 20201006
+ * LastBuild: 20201007
  */
 void OnStage() {
-	int InfraredSensorState;
+	int InfraredSensorStateTurn;	//转向红外状态
 	int DebugErrorCnt = 0;
 	while(1) {
-		// printf("%d %d %d %d\n",UP_ADC_GetValue(4),UP_ADC_GetValue(5),UP_ADC_GetValue(6),UP_ADC_GetValue(7));
-		// UP_delay_ms(400);
-		// UP_LCD_ClearScreen();
-		InfraredSensorState = GetInfraredSenorState();
-		// printf("%d\n",InfraredSensorState);
-		// LcdShowInt(InfraredSensorState);
-		// if (ChangeInfrared(InfraredB)==1) {	//后面撞到物体
-		// 	if () {	//小车没有倾斜 ---------------------------------------------------------------
-		// 		//暴力推 ------------------------------------------------------------------------
-		// 	}
-		// 	else {
-		// 		//倒车---------------------------------------------------------------------------
-		// 	}
-		// }
-		// else if (ChangeInfrared(INFRARED_F)==1) {	//前面撞到物体
-		// 	if () {	//小车没有倾斜 ---------------------------------------------------------------
-		// 		//暴力推 ------------------------------------------------------------------------
-		// 	}
-		// 	else {
-		// 		//倒车---------------------------------------------------------------------------
-		// 	}
-		// }
-		// else {
-			switch (InfraredSensorState)
+		//转向，干他
+		if (ChangeInfrared(INFRARED_F)==0) {		//前面检测到物体
+			MoveForword(SPEED_MOTOR_ATTACK);
+		}
+		else if (ChangeInfrared(INFRARED_B)==0) {	//后面检测物体
+			MoveRight(SPEED_MOTOR_TURN_ATTACK);
+			UP_delay_ms(500);
+		}
+		else if (ChangeInfrared(INFRARED_L)==0) {	//左侧检测到物体
+			MoveLeft(SPEED_MOTOR_TURN_ATTACK);
+			UP_delay_ms(250);
+		}
+		else if (ChangeInfrared(INFRARED_R)==0) {	//右侧检测到物体
+			MoveRight(SPEED_MOTOR_TURN_ATTACK);
+			UP_delay_ms(250);
+		}
+		//巡航
+		else {
+			InfraredSensorStateTurn = GetInfraredSenorState();
+			switch (InfraredSensorStateTurn)
 			{
 			case 0:
-				// MoveForword(SpeedByGraySenor());
-				// G_flagTurnF = FALSE;
-				MoveForword(SPEED_MOTOR_TURN);
+				MoveForword(SPEED_MOTOR_ON_STAGE);
 				break;
 			case 1:
 				MoveLeft(SPEED_MOTOR_TURN);
@@ -480,12 +489,10 @@ void OnStage() {
 				MoveRight(SPEED_MOTOR_TURN);
 				break;
 			case 3:
-				// G_flagTurnF = FALSE;
-				MoveForword(SPEED_MOTOR_TURN);
+				MoveForword(SPEED_MOTOR_ON_STAGE);
 				break;
 			case 4:
-				// G_flagTurnF = FALSE;
-				MoveForword(SPEED_MOTOR_TURN);
+				MoveForword(SPEED_MOTOR_ON_STAGE);
 				break;
 			case 5:
 				MoveRight(SPEED_MOTOR_TURN);
@@ -494,9 +501,7 @@ void OnStage() {
 				MoveRight(SPEED_MOTOR_TURN);
 				break;
 			case 7:
-				// MoveForword(SpeedByGraySenor());
-				// G_flagTurnF = FALSE;
-				MoveForword(SPEED_MOTOR_TURN);
+				MoveForword(SPEED_MOTOR_ON_STAGE);
 				break;
 			case 8:
 				MoveLeft(SPEED_MOTOR_TURN);
@@ -508,18 +513,16 @@ void OnStage() {
 				printf("Infrared\n");
 				break;
 			}
-		// }
+		}
 	}
-	
-	//700 - 800边缘
 }
 
 /**
  * Title: ChangeInfrared()
  * Return: int - 返回红外传感器的值（数字量）
  * Author: Ben
- * Descr: 将红外传感器的模拟值改为数字量
- * LastBuild: 20201005
+ * Descr: 将红外传感器的模拟值改为数字量，遮挡-0，不遮挡-1
+ * LastBuild: 20201007
  */
 int ChangeInfrared(int id) {
 	int AD = UP_ADC_GetValue(id);
