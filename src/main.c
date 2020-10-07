@@ -35,6 +35,7 @@ const int SPEED_MOTOR_TURN = 450; //转向时电机速度
 const int SPEED_MOTOR_ON_STAGE = 450; //上台后电机速度
 const int SPEED_MOTOR_ATTACK = 600;	//上台后的攻击速度
 const int SPEED_MOTOR_TURN_ATTACK = 500;	//上台后的转向攻击速度
+const int SPEED_MOTOR_TURN_ATTACK_TIME = 400; //上台后转向攻击延时
 
 //延时
 const int DELAY_UP_STAGE = 750; //上台延时
@@ -85,6 +86,7 @@ void FirstUpStage();		//第一次上台
 
 int GetInfraredSenorState();	//获取红外传感器状态
 int ChangeInfrared(int); 		//红外传感器模拟量转话为数字量
+int GetGraySenorState(); 		//获取灰度传感器状态
 
 void ClawDownF();	//放下前爪
 void ClawDownB();	//放下后爪
@@ -93,6 +95,7 @@ void ClawDownB();	//放下后爪
 void LcdShowInt(int); 	//LCD屏幕上显示数字
 void DebugGearbalan();	//测试爪子平衡位置
 void DebugInfraredSensor(int,int,int); //测试红外传感器
+void DebugGrayScaleSensor(); //测试灰度传感器
 
 /***************************************************************************************************************/
 /***********************************************声明函数End******************************************************/
@@ -106,7 +109,10 @@ void DebugInfraredSensor(int,int,int); //测试红外传感器
 
 int main(void)
 {	
+	//初始化函数
 	InitSys();
+	// DebugGrayScaleSensor();
+
 	UP_LCD_ClearScreen();
 
 	//软启动
@@ -333,7 +339,7 @@ void MoveLeft(int speed) {
 /**
  * Title: SoftStart()
  * Return: None
- * Author: Alt、ria
+ * Author: Altria
  * Descr: 软启动函数
  * LastBuild: 20200930
  */
@@ -347,7 +353,7 @@ void SoftStart() {
 			break;
 		}
 	}
-	printf("Game Begin!\n");
+	// printf("Game Begin!\n");
 }
 
 /**
@@ -448,31 +454,73 @@ int GetInfraredSenorState() {
 }
 
 /**
+ * Title: GetGraySenorState()
+ * Return: int - 返回小车灰度传感器状态，共0~1种
+ * Author: Altria
+ * Descr: 根据灰度传感器的值，返回小车在台上的状态（推箱子时是否会掉下去） 
+ * LastBuild: 20201007
+ */
+int GetGraySenorState() {
+	int graySenorFL,graySenorFR,graySenorBL,graySenorBR;
+	graySenorFL = UP_ADC_GetValue(GRAY_FL);
+	graySenorFR = UP_ADC_GetValue(GRAY_FR);
+	graySenorBL = UP_ADC_GetValue(GRAY_BL);
+	graySenorBR = UP_ADC_GetValue(GRAY_BR);
+
+	// printf("%d %d %d %d\n",graySenorFL,graySenorFR,graySenorBL,graySenorBR);
+	// UP_delay_ms(400);
+	// UP_LCD_ClearScreen();
+
+	//后面快下去了
+	if(graySenorBL < 600 || graySenorBR < 400) {
+		return 0;
+		// MoveForword(SPEED_MOTOR_ON_STAGE);
+		// UP_delay_ms(100);
+	}
+	//前面快掉下来了
+	else if(graySenorFL < 500 || graySenorFR < 450){
+		return 1;
+		// MoveBack(SPEED_MOTOR_ON_STAGE);
+		// UP_delay_ms(100);
+	}	
+}
+
+/**
  * Title: OnStage()
  * Return: None
- * Author: Ben
+ * Author: Altria
  * Descr: 在台上的主函数
  * LastBuild: 20201007
  */
 void OnStage() {
 	int InfraredSensorStateTurn;	//转向红外状态
+	int GraySensorStateOnStage; //灰度传感器状态
 	int DebugErrorCnt = 0;
 	while(1) {
+		GraySensorStateOnStage = GetGraySenorState();
+		// printf("%d\n",GraySensorStateOnStage);
+		if(GraySensorStateOnStage == 0) { //后面快掉下去
+			MoveForword(SPEED_MOTOR_ON_STAGE);
+			UP_delay_ms(1000);
+		} else if(GraySensorStateOnStage == 1) { //前面快掉下去
+			MoveBack(SPEED_MOTOR_ON_STAGE);
+			UP_delay_ms(1000);
+		}
 		//转向，干他
 		if (ChangeInfrared(INFRARED_F)==0) {		//前面检测到物体
 			MoveForword(SPEED_MOTOR_ATTACK);
 		}
 		else if (ChangeInfrared(INFRARED_B)==0) {	//后面检测物体
 			MoveRight(SPEED_MOTOR_TURN_ATTACK);
-			UP_delay_ms(500);
+			UP_delay_ms(SPEED_MOTOR_TURN_ATTACK_TIME);
 		}
 		else if (ChangeInfrared(INFRARED_L)==0) {	//左侧检测到物体
 			MoveLeft(SPEED_MOTOR_TURN_ATTACK);
-			UP_delay_ms(250);
+			UP_delay_ms(SPEED_MOTOR_TURN_ATTACK_TIME / 2);
 		}
 		else if (ChangeInfrared(INFRARED_R)==0) {	//右侧检测到物体
 			MoveRight(SPEED_MOTOR_TURN_ATTACK);
-			UP_delay_ms(250);
+			UP_delay_ms(SPEED_MOTOR_TURN_ATTACK_TIME / 2);
 		}
 		//巡航
 		else {
@@ -593,11 +641,17 @@ void DebugSensor(int x,int y,int id) {
  * LastBuild: 20201004
  */
 void DebugGrayScaleSensor() {
-	MoveForword(300);
+	int AD1,AD2,AD3,AD4;
+	ClawDownF();
+	ClawDownB();
+	UP_delay_ms(DELAY_UP_STAGE);
 	while(1) {
-		// printf("2: ");
-		DebugSensor(1,1,2);
-		// printf("3: ");
-		DebugSensor(2,2,3);
+		AD1 = UP_ADC_GetValue(GRAY_BL);
+		AD2 = UP_ADC_GetValue(GRAY_BR);
+		AD3 = UP_ADC_GetValue(GRAY_FL);   
+		AD4 = UP_ADC_GetValue(GRAY_FR);
+		printf("%d %d %d %d\n",AD1,AD2,AD3,AD4);
+		UP_delay_ms(400);
+		UP_LCD_ClearScreen();
 	}
 }
