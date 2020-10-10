@@ -24,21 +24,23 @@ const int GRAY_BL = 10;		//左后灰度传感器
 const int GRAY_FL = 9;		//左前灰度传感器
 const int GRAY_BR = 11;		//右后灰度传感器
 const int GRAY_FR = 2;		//右前灰度传感器
+const int GRAY = 12;        //中央灰度传感器
 
 //舵机初始化角度
 const int GEAR_ANGLE_INIT = 400; //初始化舵机变换角度
 
 //速度
 const int SPEED_GEAR = 600;	//舵机速度
-const int SPEED_MOTOR = 400; //上台时电机速度
-const int SPEED_MOTOR_TURN = 450; //转向时电机速度
-const int SPEED_MOTOR_ON_STAGE = 450; //上台后电机速度
-const int SPEED_MOTOR_ATTACK = 600;	//上台后的攻击速度
-const int SPEED_MOTOR_TURN_ATTACK = 500;	//上台后的转向攻击速度
+const int SPEED_MOTOR = 340; //上台时电机速度
+const int SPEED_MOTOR_TURN = 550; //转向时电机速度
+const int SPEED_MOTOR_ON_STAGE = 400; //上台后电机速度
+const int SPEED_MOTOR_ATTACK = 400;	//上台后的攻击速度
+const int SPEED_MOTOR_TURN_ATTACK = 350;	//上台后的转向攻击速度
 const int SPEED_MOTOR_TURN_ATTACK_TIME = 400; //上台后转向攻击延时
 
 //延时
 const int DELAY_UP_STAGE = 750; //上台延时
+const int DELAY_UP_STOP_BACK = 1000; //后退延时
 const int DELAY_UP_BACK = 3; //反转延迟
 
 /**************************************************************************************************************/
@@ -76,6 +78,7 @@ void MoveForword(int); 		//向前走
 void MoveLeft(int);			//左转
 void MoveRight(int);		//右转
 void MoveQuickStop(int);    //反转
+void MoveBack(int);
 void MoveStop(); 			//停下
 
 void SoftStart(); 	//软启动函数
@@ -92,6 +95,7 @@ void ClawDownF();	//放下前爪
 void ClawDownB();	//放下后爪
 
 //Debug函数
+// void DebugSensor(int,int,int);
 void LcdShowInt(int); 	//LCD屏幕上显示数字
 void DebugGearbalan();	//测试爪子平衡位置
 void DebugInfraredSensor(int,int,int); //测试红外传感器
@@ -113,7 +117,14 @@ int main(void)
 	InitSys();
 	// DebugGrayScaleSensor();
 
-	UP_LCD_ClearScreen();
+	// UP_LCD_ClearScreen();
+
+	// AD = UP_ADC_GetValue(INFRARED_F);
+	// // LcdShowInt(AD);
+	// if(AD == 0) {
+	// 	MoveQuickStop(SPEED_MOTOR_ON_STAGE);
+	// 	UP_delay_ms(10);
+	// }
 
 	//软启动
 	SoftStart();
@@ -121,6 +132,8 @@ int main(void)
 	//第一次上台
 	MoveBeforeUpStage();
 	FirstUpStage();	
+
+	// DebugInfraredSensor(1,1,INFRARED_F);
 
 	//台上瞎溜达
 	OnStage();
@@ -148,11 +161,11 @@ void InitSys()
     /*初始化系统*/
     UP_System_Init();
 
-	printf("DEMO 1.0\n");	//显示Demo名称
-	UP_LCD_ShowCharacterString(0,1,"BenFromHRBUST");	//显示作者团队
-	UP_LCD_ShowCharacterString(0,2,"机器人格斗大赛");	//显示（我也不知道是啥）
-	UP_delay_ms(500);	//延时2s    
-	UP_LCD_ClearScreen();	//清屏
+	// printf("DEMO 1.0\n");	//显示Demo名称
+	// UP_LCD_ShowCharacterString(0,1,"BenFromHRBUST");	//显示作者团队
+	// UP_LCD_ShowCharacterString(0,2,"机器人格斗大赛");	//显示（我也不知道是啥）
+	// UP_delay_ms(500);	//延时2s    
+	// UP_LCD_ClearScreen();	//清屏
 
 	//初始化舵机
 	InitGear();
@@ -171,12 +184,12 @@ void InitSys()
  */
 void InitGear()
 {
-	printf("SET SERVO MODE\n");	//舵机模式
+	// printf("SET SERVO MODE\n");	//舵机模式
 	UP_CDS_SetMode(3, CDS_SEVMODE);		//设置3号舵机为舵机模式	
 	UP_CDS_SetMode(6, CDS_SEVMODE);		//设置6号舵机为舵机模式	
 	UP_CDS_SetMode(4, CDS_SEVMODE);		//设置4号舵机为舵机模式	
 	UP_CDS_SetMode(5, CDS_SEVMODE);		//设置5号舵机为舵机模式	
-	printf("SET FINISH\n");	//舵机模式
+	// printf("SET FINISH\n");	//舵机模式
 }
 
 /**
@@ -188,10 +201,10 @@ void InitGear()
  */
 void InitMotor()
 {
-	printf("SET MOTO MODE\n");	//电机模式
+	// printf("SET MOTO MODE\n");	//电机模式
 	UP_CDS_SetMode(1, CDS_MOTOMODE);	//设置1号舵机为电机模式	
 	UP_CDS_SetMode(2, CDS_MOTOMODE);	//设置2号舵机为电机模式	
-	printf("SET FINISH\n");	//电机模式
+	// printf("SET FINISH\n");	//电机模式
 }
 
 /**
@@ -229,7 +242,7 @@ void InitClaw()
 {
 	InitForepaw();
 	InitHindpaw();
-	UP_delay_ms(2000);
+	UP_delay_ms(500);
 }
 
 /****************************************************************************************************************/
@@ -249,8 +262,8 @@ void InitClaw()
  * LastBuild: 20200929
  */
 void MoveStop() {
-	UP_CDS_SetSpeed(1, 0);
-	UP_CDS_SetSpeed(2, 0);
+	MoveBack(SPEED_MOTOR_ON_STAGE + 400);
+	UP_delay_ms(3);
 }
 
 /**
@@ -289,8 +302,8 @@ void MoveBack(int speed) {
  * LastBuild: 20201006
  */
 void MoveQuickStop(int speed) {
-	UP_CDS_SetSpeed(1, speed);
-	UP_CDS_SetSpeed(2, -speed);
+	UP_CDS_SetSpeed(1, speed + 200);
+	UP_CDS_SetSpeed(2, -speed - 200);
 }
 
 /**
@@ -303,11 +316,11 @@ void MoveQuickStop(int speed) {
  */
 void MoveRight(int speed) {
 	if (G_flagTurnF == TRUE) {
-		MoveQuickStop(SPEED_MOTOR_ON_STAGE);
-		UP_delay_ms(DELAY_UP_BACK);
+		MoveStop();
 	}
-	UP_CDS_SetSpeed(2, speed);
-	UP_CDS_SetSpeed(1, speed);
+	UP_CDS_SetSpeed(2, speed - 25);
+	UP_CDS_SetSpeed(1, speed + 25);
+	// UP_delay_ms(100);
 	G_flagTurnF = FALSE;
 }
 
@@ -321,11 +334,11 @@ void MoveRight(int speed) {
  */
 void MoveLeft(int speed) {
 	if (G_flagTurnF == TRUE) {
-		MoveQuickStop(SPEED_MOTOR_ON_STAGE);
-		UP_delay_ms(DELAY_UP_BACK);
+		MoveStop();
 	}
 	UP_CDS_SetSpeed(1, -speed);
 	UP_CDS_SetSpeed(2, -speed);
+	// UP_delay_ms(100);
 	G_flagTurnF = FALSE;
 }
 
@@ -387,14 +400,15 @@ void FirstUpStage()
 	InitForepaw();
 	UP_delay_ms(DELAY_UP_STAGE - 100);
 
-	//后爪撑地
+	//Τ诺?
 	UP_CDS_SetAngle(4, GEAR_ANGLE_4 - 120, SPEED_GEAR);
 	UP_CDS_SetAngle(5, GEAR_ANGLE_5 + 120, SPEED_GEAR);
 	UP_delay_ms(DELAY_UP_STAGE + 50);
 
 	//进入攻击状态（前爪放下）
 	ClawDownF();
-	ClawDownB();
+	// ClawDownB();
+	InitHindpaw();
 	UP_delay_ms(DELAY_UP_STAGE);
 }
 
@@ -407,8 +421,8 @@ void FirstUpStage()
  * LastBuild: 20201007
  */
 void ClawDownF() {
-	UP_CDS_SetAngle(3,GEAR_ANGLE_3,SPEED_GEAR);
-	UP_CDS_SetAngle(6,GEAR_ANGLE_6,SPEED_GEAR);
+	UP_CDS_SetAngle(3,GEAR_ANGLE_3 + 105,SPEED_GEAR);
+	UP_CDS_SetAngle(6,GEAR_ANGLE_6 - 105,SPEED_GEAR);
 }
 
 /**
@@ -472,14 +486,119 @@ int GetGraySenorState() {
 	// UP_LCD_ClearScreen();
 
 	//后面快下去了
-	if(graySenorBL < 600 || graySenorBR < 400) {
+	if(graySenorBL < 750 || graySenorBR < 500) {
 		return 0;
 	}
 	//前面快掉下来了
-	else if(graySenorFL < 500 || graySenorFR < 450){
+	else if(graySenorFL < 650 || graySenorFR < 650){
 		return 1;
 	}
 	return -1;
+}
+
+void GrayCheck() {
+	int GrayState;
+	GrayState = UP_ADC_GetValue(GRAY);
+	LcdShowInt(GrayState);
+	if(GrayState <= 950) {
+		// printf("%d\n",GrayState);
+		MoveBack(SPEED_MOTOR_ON_STAGE + 150);
+		UP_delay_ms(1000);
+	}
+}
+
+void Fight() {
+	int cnt = 0;
+	int countCnt = 60;
+	if(ChangeInfrared(INFRARED_B) == 0 || ChangeInfrared(INFRARED_L) == 0 || ChangeInfrared(INFRARED_R) == 0) {
+		// MoveBack(SPEED_MOTOR_ON_STAGE);
+		// UP_delay_ms(3);
+		// MoveStop();
+		// UP_delay_ms(100);
+		if(ChangeInfrared(INFRARED_B) == 0) {
+			MoveLeft(SPEED_MOTOR_TURN);
+			countCnt = 120;
+		} else if(ChangeInfrared(INFRARED_L) == 0) {
+			MoveLeft(SPEED_MOTOR_TURN);
+		} else if(ChangeInfrared(INFRARED_R) == 0) {
+			MoveRight(SPEED_MOTOR_TURN);
+		}
+		while(ChangeInfrared(INFRARED_F) == 1 && cnt <= countCnt) {
+			cnt++;
+			// printf("%d\n",cnt);
+		}
+		cnt = 0;
+		UP_delay_ms(500);
+		MoveStop();
+	}
+	if (ChangeInfrared(INFRARED_F) == 0) {	//前面检测到物体
+		MoveForword(SPEED_MOTOR_ATTACK);
+	}
+}
+
+void WakeOnStage() {
+	int InfraredSensorStateTurn;	//转向红外状态
+	InfraredSensorStateTurn = GetInfraredSenorState();
+	switch (InfraredSensorStateTurn)
+	{
+	case 0:
+		// MoveStop();
+		// MoveBack(SPEED_MOTOR_ON_STAGE);
+		// UP_delay_ms(500);
+		MoveForword(SPEED_MOTOR_ON_STAGE);
+		break;
+	case 1:
+		// MoveStop();
+		// MoveBack(SPEED_MOTOR_ON_STAGE);
+		// UP_delay_ms(DELAY_UP_STOP_BACK);
+		MoveLeft(SPEED_MOTOR_TURN);
+		break;
+	case 2:
+		// MoveStop();
+		// MoveBack(SPEED_MOTOR_ON_STAGE);
+		// UP_delay_ms(DELAY_UP_STOP_BACK);
+		MoveRight(SPEED_MOTOR_TURN);
+		break;
+	case 3:
+		// MoveStop();
+		// MoveBack(SPEED_MOTOR_ON_STAGE);
+		// UP_delay_ms(500);
+		MoveForword(SPEED_MOTOR_ON_STAGE);
+		break;
+	case 4:
+		// MoveStop();
+		// MoveBack(SPEED_MOTOR_ON_STAGE);
+		// UP_delay_ms(500);
+		MoveForword(SPEED_MOTOR_ON_STAGE);
+		break;
+	case 5:
+		MoveStop();
+		MoveBack(SPEED_MOTOR_ON_STAGE);
+		UP_delay_ms(DELAY_UP_STOP_BACK);
+		MoveRight(SPEED_MOTOR_TURN);
+		UP_delay_ms(500);
+		break;
+	case 6:
+		// MoveStop();
+		// MoveBack(SPEED_MOTOR_ON_STAGE);
+		// UP_delay_ms(DELAY_UP_STOP_BACK);
+		MoveRight(SPEED_MOTOR_TURN);
+		break;
+	case 7:
+		// MoveStop();
+		// MoveBack(SPEED_MOTOR_ON_STAGE);
+		// UP_delay_ms(500);
+		MoveForword(SPEED_MOTOR_ON_STAGE);
+		break;
+	case 8:
+		// MoveStop();
+		// MoveBack(SPEED_MOTOR_ON_STAGE);
+		// UP_delay_ms(DELAY_UP_STOP_BACK);
+		MoveLeft(SPEED_MOTOR_TURN);
+		break;
+	default:
+		break;
+	}
 }
 
 /**
@@ -490,76 +609,10 @@ int GetGraySenorState() {
  * LastBuild: 20201007
  */
 void OnStage() {
-	int InfraredSensorStateTurn;	//转向红外状态
-	int GraySensorStateOnStage; //灰度传感器状态
-	int DebugErrorCnt = 0;
 	while(1) {
-		GraySensorStateOnStage = GetGraySenorState();
-
-		//判断是否快掉下去
-		if(GraySensorStateOnStage == 0) { //后面快掉下去
-			MoveForword(SPEED_MOTOR_ON_STAGE);
-			UP_delay_ms(1000);
-		} else if(GraySensorStateOnStage == 1) { //前面快掉下去
-			MoveBack(SPEED_MOTOR_ON_STAGE);
-			UP_delay_ms(1000);
-		}
-		//转向，干他
-		else if (ChangeInfrared(INFRARED_F)==0) {	//前面检测到物体
-			MoveForword(SPEED_MOTOR_ATTACK);
-		}
-		else if (ChangeInfrared(INFRARED_B)==0) {	//后面检测物体
-			MoveRight(SPEED_MOTOR_TURN_ATTACK);
-			UP_delay_ms(SPEED_MOTOR_TURN_ATTACK_TIME);
-		}
-		else if (ChangeInfrared(INFRARED_L)==0) {	//左侧检测到物体
-			MoveLeft(SPEED_MOTOR_TURN_ATTACK);
-			UP_delay_ms(SPEED_MOTOR_TURN_ATTACK_TIME / 2);
-		}
-		else if (ChangeInfrared(INFRARED_R)==0) {	//右侧检测到物体
-			MoveRight(SPEED_MOTOR_TURN_ATTACK);
-			UP_delay_ms(SPEED_MOTOR_TURN_ATTACK_TIME / 2);
-		}
-		//巡航
-		else {
-			InfraredSensorStateTurn = GetInfraredSenorState();
-			switch (InfraredSensorStateTurn)
-			{
-			case 0:
-				MoveForword(SPEED_MOTOR_ON_STAGE);
-				break;
-			case 1:
-				MoveLeft(SPEED_MOTOR_TURN);
-				break;
-			case 2:
-				MoveRight(SPEED_MOTOR_TURN);
-				break;
-			case 3:
-				MoveForword(SPEED_MOTOR_ON_STAGE);
-				break;
-			case 4:
-				MoveForword(SPEED_MOTOR_ON_STAGE);
-				break;
-			case 5:
-				MoveRight(SPEED_MOTOR_TURN);
-				break;
-			case 6:
-				MoveRight(SPEED_MOTOR_TURN);
-				break;
-			case 7:
-				MoveForword(SPEED_MOTOR_ON_STAGE);
-				break;
-			case 8:
-				MoveLeft(SPEED_MOTOR_TURN);
-				break;
-			default:
-				DebugErrorCnt ++;
-				UP_LCD_ClearScreen();
-				printf("%d: ERROR!\n", DebugErrorCnt);
-				printf("Infrared\n");
-				break;
-			}
-		}
+		// GrayCheck();
+		WakeOnStage();
+		Fight();
 	}
 }
 
@@ -648,7 +701,7 @@ void DebugGrayScaleSensor() {
 		AD2 = UP_ADC_GetValue(GRAY_BR);
 		AD3 = UP_ADC_GetValue(GRAY_FL);   
 		AD4 = UP_ADC_GetValue(GRAY_FR);
-		printf("%d %d %d %d\n",AD1,AD2,AD3,AD4);
+		// printf("BL: %d\n BR: %d\n FL: %d\n FR: %d\n",AD1,AD2,AD3,AD4);
 		UP_delay_ms(400);
 		UP_LCD_ClearScreen();
 	}
