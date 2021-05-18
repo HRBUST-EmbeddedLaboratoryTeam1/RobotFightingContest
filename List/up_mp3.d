@@ -1,7 +1,7 @@
 ..\list\up_mp3.o: ..\src\UpLib\UP_MP3.c
 ..\list\up_mp3.o: ..\src\UpLib\STM32Lib\\stm32f10x.h
 ..\list\up_mp3.o: ..\src\UpLib\STM32Lib\\core_cm3.h
-..\list\up_mp3.o: D:\InstallationPackage\keil5\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+..\list\up_mp3.o: D:\InstallationPackage\keil\ARM\ARMCC\Bin\..\include\stdint.h
 ..\list\up_mp3.o: ..\src\UpLib\STM32Lib\\system_stm32f10x.h
 ..\list\up_mp3.o: ..\src\UpLib\STM32Lib\\stm32f10x_conf.h
 ..\list\up_mp3.o: ..\src\UpLib\STM32Lib\\stm32f10x_adc.h
