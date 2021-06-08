@@ -14,8 +14,8 @@ const int GEAR_BACK_LEFT = 1;
 const int GEAR_BACK_RIGHT = 2;
 
 //舵机平衡位置角度
-const int GEAR_ANGLE_FRONT_LEFT = 520;	//左前爪平衡位置角度 
-const int GEAR_ANGLE_FRONT_RIGHT = 630;	//右前爪平衡位置角度
+const int GEAR_ANGLE_FRONT_LEFT = 500 + 20;	//左前爪平衡位置角度 
+const int GEAR_ANGLE_FRONT_RIGHT = 550 - 20;	//右前爪平衡位置角度
 const int GEAR_ANGLE_BACK_LEFT = 520;	  //左后爪平衡位置角度
 const int GEAR_ANGLE_BACK_RIGHT = 450;	//右后爪平衡位置角度
 
@@ -31,10 +31,10 @@ const int GEAR_ANGLE_BACK_RIGHT_BEGIN = 800;	//右后爪上台位置角度
 
 
 //传感器编号
-const int INFRARED_BL = 4;	//左后红外传感器
-const int INFRARED_FL = 5;	//左前红外传感器
-const int INFRARED_BR = 6;	//右后红外传感器
-const int INFRARED_FR = 7;	//右前红外传感器
+const int INFRARED_BL = 10;	//左后红外传感器
+const int INFRARED_FL = 9;	//左前红外传感器
+const int INFRARED_BR = 7;	//右后红外传感器
+const int INFRARED_FR = 6;	//右前红外传感器
 const int INFRARED_F = 8;	//前侧红外传感器
 const int INFRARED_B = 3;	//后侧红外传感器
 const int INFRARED_L = 1;   //左边红外传感器
@@ -51,10 +51,10 @@ const int GEAR_ANGLE_INIT = 400; //初始化舵机变换角度
 //速度
 const int SPEED_GEAR = 800;	//舵机速度
 const int SPEED_MOTOR = 340; //上台时电机速度
-const int SPEED_MOTOR_TURN = 550; //转向时电机速度
-const int SPEED_MOTOR_ON_STAGE = 400; //上台后电机速度
+const int SPEED_MOTOR_TURN = 350; //转向时电机速度
+const int SPEED_MOTOR_ON_STAGE = 370; //上台后电机速度
 const int SPEED_MOTOR_ATTACK = 400;	//上台后的攻击速度
-const int SPEED_MOTOR_TURN_ATTACK = 350;	//上台后的转向攻击速度
+const int SPEED_MOTOR_TURN_ATTACK = 500; //上台后的转向攻击速度
 const int SPEED_MOTOR_TURN_ATTACK_TIME = 400; //上台后转向攻击延时
 
 //延时
@@ -155,7 +155,7 @@ int main(void)
 	// DebugInfraredSensor(1,1,INFRARED_F);
 
 	//台上瞎溜达
-	//OnStage();
+	OnStage();
 }
 
 /**************************************************************************************************************/
@@ -281,7 +281,9 @@ void InitClaw()
  * LastBuild: 20200929
  */
 void MoveStop() {
-	MoveBack(SPEED_MOTOR_ON_STAGE + 400);
+	// MoveBack(SPEED_MOTOR_ON_STAGE + 400);
+	UP_CDS_SetSpeed(MOTOR_LEFT, 0);
+	UP_CDS_SetSpeed(MOTOR_RIGHT, 0);
 	UP_delay_ms(3);
 }
 
@@ -321,8 +323,8 @@ void MoveBack(int speed) {
  * LastBuild: 20201006
  */
 void MoveQuickStop(int speed) {
-	UP_CDS_SetSpeed(MOTOR_LEFT, -speed - 200);
-	UP_CDS_SetSpeed(MOTOR_RIGHT, speed + 200);
+	UP_CDS_SetSpeed(MOTOR_LEFT, speed + 200);
+	UP_CDS_SetSpeed(MOTOR_RIGHT, -speed - 200);
 }
 
 /**
@@ -397,8 +399,8 @@ void SoftStart() {
  */
 void MoveBeforeUpStage() {
 	MoveBack(SPEED_MOTOR);
-	UP_delay_ms(1000);	//行走至擂台边缘
-	MoveQuickStop(SPEED_MOTOR);
+	UP_delay_ms(1800);	//行走至擂台边缘
+	//MoveQuickStop(SPEED_MOTOR);
 }
 
 /**
@@ -418,21 +420,26 @@ void FirstUpStage()
 
 	//后爪复位
 	InitHindpaw();
-	UP_delay_ms(DELAY_UP_STAGE - 100);
+	// UP_delay_ms(DELAY_UP_STAGE - 100);
 
-	//Τ诺?
+	//前爪向下
 	UP_CDS_SetAngle(GEAR_FRONT_LEFT, GEAR_ANGLE_FRONT_LEFT + 200, SPEED_GEAR);
 	UP_CDS_SetAngle(GEAR_FRONT_RIGHT, GEAR_ANGLE_FRONT_RIGHT - 200, SPEED_GEAR);
 	UP_delay_ms(DELAY_UP_STAGE + 50);
 	
+	//前爪复位
 	UP_CDS_SetAngle(GEAR_FRONT_LEFT, GEAR_ANGLE_FRONT_LEFT, SPEED_GEAR);
 	UP_CDS_SetAngle(GEAR_FRONT_RIGHT, GEAR_ANGLE_FRONT_RIGHT, SPEED_GEAR);
 	UP_delay_ms(DELAY_UP_STAGE + 50);
 	
 	MoveStop();
-	UP_delay_ms(DELAY_UP_STAGE + 50);
+	// UP_delay_ms(DELAY_UP_STAGE + 50);
 	
-//	//进入攻击状态（前爪放下）
+	//进入攻击状态，转身
+	MoveLeft(SPEED_MOTOR_TURN_ATTACK);
+	UP_delay_ms(770);
+	MoveStop();
+	
 //	ClawDownF();
 //	// ClawDownB();
 //	InitHindpaw();
@@ -639,7 +646,7 @@ void OnStage() {
 	while(1) {
 		// GrayCheck();
 		WakeOnStage();
-		Fight();
+		// Fight();
 	}
 }
 
