@@ -14,36 +14,33 @@ const int GEAR_BACK_LEFT = 1;
 const int GEAR_BACK_RIGHT = 2;
 
 //舵机平衡位置角度
-const int GEAR_ANGLE_FRONT_LEFT = 500 + 20;	//左前爪平衡位置角度 
-const int GEAR_ANGLE_FRONT_RIGHT = 550 - 20;	//右前爪平衡位置角度
-const int GEAR_ANGLE_BACK_LEFT = 520;	  //左后爪平衡位置角度
-const int GEAR_ANGLE_BACK_RIGHT = 450;	//右后爪平衡位置角度
+const int GEAR_ANGLE_FRONT_LEFT = 500 + 20;	 //左前爪平衡位置角度 
+const int GEAR_ANGLE_FRONT_RIGHT = 550 - 20; //右前爪平衡位置角度
+const int GEAR_ANGLE_BACK_LEFT = 520;	     //左后爪平衡位置角度
+const int GEAR_ANGLE_BACK_RIGHT = 450;	     //右后爪平衡位置角度
 
 const int GEAR_ANGLE_FRONT_LEFT_ONSTAGE = 400;	//左前爪上台位置角度 
 const int GEAR_ANGLE_FRONT_RIGHT_ONSTAGE = 750;	//右前爪上台位置角度
-const int GEAR_ANGLE_BACK_LEFT_ONSTAGE = 670;	  //左后爪上台位置角度
+const int GEAR_ANGLE_BACK_LEFT_ONSTAGE = 670;	//左后爪上台位置角度
 const int GEAR_ANGLE_BACK_RIGHT_ONSTAGE = 300;	//右后爪上台位置角度
 
 const int GEAR_ANGLE_FRONT_LEFT_BEGIN = 250;	//左前爪上台位置角度 
 const int GEAR_ANGLE_FRONT_RIGHT_BEGIN = 900;	//右前爪上台位置角度
-const int GEAR_ANGLE_BACK_LEFT_BEGIN = 170;	  //左后爪上台位置角度
+const int GEAR_ANGLE_BACK_LEFT_BEGIN = 170;	    //左后爪上台位置角度
 const int GEAR_ANGLE_BACK_RIGHT_BEGIN = 800;	//右后爪上台位置角度
-
 
 //传感器编号
 const int INFRARED_BL = 10;	//左后红外传感器
 const int INFRARED_FL = 9;	//左前红外传感器
 const int INFRARED_BR = 7;	//右后红外传感器
 const int INFRARED_FR = 6;	//右前红外传感器
-const int INFRARED_F = 8;	//前侧红外传感器
-const int INFRARED_B = 3;	//后侧红外传感器
+const int INFRARED_F = 0;	//前侧红外传感器
+const int INFRARED_B = 2;	//后侧红外传感器
 const int INFRARED_L = 1;   //左边红外传感器
-const int INFRARED_R = 0; 	//右边红外传感器
-const int GRAY_BL = 10;		//左后灰度传感器
-const int GRAY_FL = 9;		//左前灰度传感器
-const int GRAY_BR = 11;		//右后灰度传感器
-const int GRAY_FR = 2;		//右前灰度传感器
-const int GRAY = 12;        //中央灰度传感器
+const int INFRARED_R = 3; 	//右边红外传感器
+const int INFRARED_LF = 11; //铲子左边红外传感器
+const int INFRARED_RF = 8;  //铲子右边红外传感器
+const int GRAY = 5;         //铲子下面灰度传感器
 
 //舵机初始化角度
 const int GEAR_ANGLE_INIT = 400; //初始化舵机变换角度
@@ -59,7 +56,7 @@ const int SPEED_MOTOR_TURN_ATTACK_TIME = 400; //上台后转向攻击延时
 
 //延时
 const int DELAY_UP_STAGE = 750; //上台延时
-const int DELAY_UP_STOP_BACK = 1000; //后退延时
+const int DELAY_UP_STOP_BACK = 200; //后退延时
 const int DELAY_UP_BACK = 3; //反转延迟
 
 /**************************************************************************************************************/
@@ -133,9 +130,9 @@ void DebugGrayScaleSensor(); //测试灰度传感器
 int main(void)
 {	
 	//初始化函数
-	InitSys();
+	// InitSys();
 	// DebugGrayScaleSensor();
-
+	UP_System_Init();
 	// UP_LCD_ClearScreen();
 
 	// AD = UP_ADC_GetValue(INFRARED_F);
@@ -149,8 +146,8 @@ int main(void)
 	//SoftStart();
 	
 	//第一次上台
-	MoveBeforeUpStage();
-	FirstUpStage();	
+	// MoveBeforeUpStage();
+	// FirstUpStage();	
 
 	// DebugInfraredSensor(1,1,INFRARED_F);
 
@@ -367,9 +364,6 @@ void MoveLeft(int speed) {
 /***********************************************移动函数End******************************************************/
 /***************************************************************************************************************/
 
-
-
-
 /**
  * Title: SoftStart()
  * Return: None
@@ -380,8 +374,8 @@ void MoveLeft(int speed) {
 void SoftStart() {
 	int infraredSensorLeft, infraredSensorRight;
 	while(1) {
-		infraredSensorLeft = ChangeInfrared(1);
-		infraredSensorRight = ChangeInfrared(0);
+		infraredSensorLeft = ChangeInfrared(INFRARED_L);
+		infraredSensorRight = ChangeInfrared(INFRARED_R);
 		// printf("first: %d %d\n",infraredSensorLeft,infraredSensorRight);
 		if(infraredSensorLeft == 0 && infraredSensorRight == 0) {
 			break;
@@ -501,43 +495,14 @@ int GetInfraredSenorState() {
 	return -1;
 }
 
-/**
- * Title: GetGraySenorState()
- * Return: int - 返回小车灰度传感器状态，共0~1种
- * Author: Ben
- * Descr: 根据灰度传感器的值，返回小车在台上的状态（推箱子时是否会掉下去） 
- * LastBuild: 20201007
- */
-int GetGraySenorState() {
-	int graySenorFL, graySenorFR, graySenorBL, graySenorBR;
-	graySenorFL = UP_ADC_GetValue(GRAY_FL);
-	graySenorFR = UP_ADC_GetValue(GRAY_FR);
-	graySenorBL = UP_ADC_GetValue(GRAY_BL);
-	graySenorBR = UP_ADC_GetValue(GRAY_BR);
-
-	// printf("%d %d %d %d\n",graySenorFL,graySenorFR,graySenorBL,graySenorBR);
-	// UP_delay_ms(400);
-	// UP_LCD_ClearScreen();
-
-	//后面快下去了
-	if(graySenorBL < 750 || graySenorBR < 500) {
-		return 0;
-	}
-	//前面快掉下来了
-	else if(graySenorFL < 650 || graySenorFR < 650){
-		return 1;
-	}
-	return -1;
-}
-
 void GrayCheck() {
 	int GrayState;
 	GrayState = UP_ADC_GetValue(GRAY);
-	LcdShowInt(GrayState);
-	if(GrayState <= 950) {
-		// printf("%d\n",GrayState);
-		MoveBack(SPEED_MOTOR_ON_STAGE + 150);
-		UP_delay_ms(1000);
+	// LcdShowInt(GrayState);
+	if (GrayState >= 2800) {
+		MoveForword(SPEED_MOTOR_ON_STAGE + 100);
+	} else {
+		MoveForword(SPEED_MOTOR_ON_STAGE - 200);
 	}
 }
 
@@ -564,6 +529,11 @@ void Fight() {
 		cnt = 0;
 		UP_delay_ms(500);
 		MoveStop();
+	}
+	if (ChangeInfrared(INFRARED_LF) == 0) {
+		MoveRight(SPEED_MOTOR_ON_STAGE);
+	} else if (ChangeInfrared(INFRARED_RF) == 0) {
+		MoveLeft(SPEED_MOTOR_ON_STAGE);
 	}
 	if (ChangeInfrared(INFRARED_F) == 0) {	//前面检测到物体
 		MoveForword(SPEED_MOTOR_ATTACK);
@@ -606,11 +576,11 @@ void WakeOnStage() {
 		MoveForword(SPEED_MOTOR_ON_STAGE);
 		break;
 	case 5:
-		MoveStop();
+		// MoveStop();
 		MoveBack(SPEED_MOTOR_ON_STAGE);
 		UP_delay_ms(DELAY_UP_STOP_BACK);
 		MoveRight(SPEED_MOTOR_TURN);
-		UP_delay_ms(500);
+		// UP_delay_ms(500);
 		break;
 	case 6:
 		// MoveStop();
@@ -644,9 +614,9 @@ void WakeOnStage() {
  */
 void OnStage() {
 	while(1) {
-		// GrayCheck();
 		WakeOnStage();
 		// Fight();
+		GrayCheck();
 	}
 }
 
@@ -663,10 +633,6 @@ int ChangeInfrared(int id) {
 	else return 1;
 }
 
-
-
-
-
 /**************************************************************************************************************/
 /***********************************************DEBUG函数******************************************************/
 /**************************************************************************************************************/
@@ -680,9 +646,9 @@ int ChangeInfrared(int id) {
  * LastBuild: 20200930
  */
 void LcdShowInt(int x) {
+	printf("grayValue = %d\n",x);
 	UP_delay_ms(400);
 	UP_LCD_ClearScreen();
-	printf("%d\n",x);
 }
 
 /**
@@ -725,18 +691,18 @@ void DebugSensor(int x,int y,int id) {
  * Descr: 调试灰度传感器
  * LastBuild: 20201004
  */
-void DebugGrayScaleSensor() {
-	int AD1,AD2,AD3,AD4;
-	ClawDownF();
-	ClawDownB();
-	UP_delay_ms(DELAY_UP_STAGE);
-	while(1) {
-		AD1 = UP_ADC_GetValue(GRAY_BL);
-		AD2 = UP_ADC_GetValue(GRAY_BR);
-		AD3 = UP_ADC_GetValue(GRAY_FL);   
-		AD4 = UP_ADC_GetValue(GRAY_FR);
-		// printf("BL: %d\n BR: %d\n FL: %d\n FR: %d\n",AD1,AD2,AD3,AD4);
-		UP_delay_ms(400);
-		UP_LCD_ClearScreen();
-	}
-}
+// void DebugGrayScaleSensor() {
+// 	int AD1,AD2,AD3,AD4;
+// 	ClawDownF();
+// 	ClawDownB();
+// 	UP_delay_ms(DELAY_UP_STAGE);
+// 	while(1) {
+// 		AD1 = UP_ADC_GetValue(GRAY_BL);
+// 		AD2 = UP_ADC_GetValue(GRAY_BR);
+// 		AD3 = UP_ADC_GetValue(GRAY_FL);   
+// 		AD4 = UP_ADC_GetValue(GRAY_FR);
+// 		// printf("BL: %d\n BR: %d\n FL: %d\n FR: %d\n",AD1,AD2,AD3,AD4);
+// 		UP_delay_ms(400);
+// 		UP_LCD_ClearScreen();
+// 	}
+// }
