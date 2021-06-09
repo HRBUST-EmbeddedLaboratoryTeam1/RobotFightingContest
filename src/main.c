@@ -14,7 +14,6 @@ const int GEAR_BACK_LEFT = 1;
 const int GEAR_BACK_RIGHT = 2;
 
 //舵机平衡位置角度
-<<<<<<< HEAD
 const int GEAR_ANGLE_FRONT_LEFT = 500 + 20;	 //左前爪平衡位置角度 
 const int GEAR_ANGLE_FRONT_RIGHT = 550 - 20; //右前爪平衡位置角度
 const int GEAR_ANGLE_BACK_LEFT = 520;	     //左后爪平衡位置角度
@@ -23,28 +22,12 @@ const int GEAR_ANGLE_BACK_RIGHT = 450;	     //右后爪平衡位置角度
 const int GEAR_ANGLE_FRONT_LEFT_ONSTAGE = 400;	//左前爪上台位置角度 
 const int GEAR_ANGLE_FRONT_RIGHT_ONSTAGE = 750;	//右前爪上台位置角度
 const int GEAR_ANGLE_BACK_LEFT_ONSTAGE = 670;	//左后爪上台位置角度
-=======
-const int GEAR_ANGLE_FRONT_LEFT = 520;	//左前爪平衡位置角度 
-const int GEAR_ANGLE_FRONT_RIGHT = 630;	//右前爪平衡位置角度
-const int GEAR_ANGLE_BACK_LEFT = 520;	  //左后爪平衡位置角度
-const int GEAR_ANGLE_BACK_RIGHT = 450;	//右后爪平衡位置角度
-
-const int GEAR_ANGLE_FRONT_LEFT_ONSTAGE = 400;	//左前爪上台位置角度 
-const int GEAR_ANGLE_FRONT_RIGHT_ONSTAGE = 750;	//右前爪上台位置角度
-const int GEAR_ANGLE_BACK_LEFT_ONSTAGE = 670;	  //左后爪上台位置角度
->>>>>>> 18eaff450de4aad7e56bae90f4f1849d7f0d7291
 const int GEAR_ANGLE_BACK_RIGHT_ONSTAGE = 300;	//右后爪上台位置角度
 
 const int GEAR_ANGLE_FRONT_LEFT_BEGIN = 250;	//左前爪上台位置角度 
 const int GEAR_ANGLE_FRONT_RIGHT_BEGIN = 900;	//右前爪上台位置角度
-<<<<<<< HEAD
 const int GEAR_ANGLE_BACK_LEFT_BEGIN = 170;	    //左后爪上台位置角度
 const int GEAR_ANGLE_BACK_RIGHT_BEGIN = 800;	//右后爪上台位置角度
-=======
-const int GEAR_ANGLE_BACK_LEFT_BEGIN = 170;	  //左后爪上台位置角度
-const int GEAR_ANGLE_BACK_RIGHT_BEGIN = 800;	//右后爪上台位置角度
-
->>>>>>> 18eaff450de4aad7e56bae90f4f1849d7f0d7291
 
 //传感器编号
 const int INFRARED_BL = 10;	//左后红外传感器
@@ -169,7 +152,7 @@ int main(void)
 	// DebugInfraredSensor(1,1,INFRARED_F);
 
 	//台上瞎溜达
-	//OnStage();
+	OnStage();
 }
 
 /**************************************************************************************************************/
@@ -337,13 +320,8 @@ void MoveBack(int speed) {
  * LastBuild: 20201006
  */
 void MoveQuickStop(int speed) {
-<<<<<<< HEAD
 	UP_CDS_SetSpeed(MOTOR_LEFT, speed + 200);
 	UP_CDS_SetSpeed(MOTOR_RIGHT, -speed - 200);
-=======
-	UP_CDS_SetSpeed(MOTOR_LEFT, -speed - 200);
-	UP_CDS_SetSpeed(MOTOR_RIGHT, speed + 200);
->>>>>>> 18eaff450de4aad7e56bae90f4f1849d7f0d7291
 }
 
 /**
@@ -415,13 +393,8 @@ void SoftStart() {
  */
 void MoveBeforeUpStage() {
 	MoveBack(SPEED_MOTOR);
-<<<<<<< HEAD
 	UP_delay_ms(1800);	//行走至擂台边缘
 	//MoveQuickStop(SPEED_MOTOR);
-=======
-	UP_delay_ms(1000);	//行走至擂台边缘
-	MoveQuickStop(SPEED_MOTOR);
->>>>>>> 18eaff450de4aad7e56bae90f4f1849d7f0d7291
 }
 
 /**
@@ -441,29 +414,19 @@ void FirstUpStage()
 
 	//后爪复位
 	InitHindpaw();
-<<<<<<< HEAD
 	// UP_delay_ms(DELAY_UP_STAGE - 100);
 
 	//前爪向下
-=======
-	UP_delay_ms(DELAY_UP_STAGE - 100);
-
-	//Τ诺?
->>>>>>> 18eaff450de4aad7e56bae90f4f1849d7f0d7291
 	UP_CDS_SetAngle(GEAR_FRONT_LEFT, GEAR_ANGLE_FRONT_LEFT + 200, SPEED_GEAR);
 	UP_CDS_SetAngle(GEAR_FRONT_RIGHT, GEAR_ANGLE_FRONT_RIGHT - 200, SPEED_GEAR);
 	UP_delay_ms(DELAY_UP_STAGE + 50);
 	
-<<<<<<< HEAD
 	//前爪复位
-=======
->>>>>>> 18eaff450de4aad7e56bae90f4f1849d7f0d7291
 	UP_CDS_SetAngle(GEAR_FRONT_LEFT, GEAR_ANGLE_FRONT_LEFT, SPEED_GEAR);
 	UP_CDS_SetAngle(GEAR_FRONT_RIGHT, GEAR_ANGLE_FRONT_RIGHT, SPEED_GEAR);
 	UP_delay_ms(DELAY_UP_STAGE + 50);
 	
 	MoveStop();
-<<<<<<< HEAD
 	// UP_delay_ms(DELAY_UP_STAGE + 50);
 	
 	//进入攻击状态，转身
@@ -471,11 +434,6 @@ void FirstUpStage()
 	UP_delay_ms(770);
 	MoveStop();
 	
-=======
-	UP_delay_ms(DELAY_UP_STAGE + 50);
-	
-//	//进入攻击状态（前爪放下）
->>>>>>> 18eaff450de4aad7e56bae90f4f1849d7f0d7291
 //	ClawDownF();
 //	// ClawDownB();
 //	InitHindpaw();
