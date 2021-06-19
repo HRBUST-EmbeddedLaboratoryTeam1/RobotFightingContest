@@ -143,11 +143,11 @@ int main(void)
 	// }
 
 	//软启动
-	//SoftStart();
+	SoftStart();
 	
 	//第一次上台
-	// MoveBeforeUpStage();
-	// FirstUpStage();	
+	MoveBeforeUpStage();
+	FirstUpStage();	
 
 	// DebugInfraredSensor(1,1,INFRARED_F);
 
