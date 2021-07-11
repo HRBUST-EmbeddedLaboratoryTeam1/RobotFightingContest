@@ -52,49 +52,51 @@ compiling main.c...
   extern void UP_Woody_QrCodeRecForbidIssue();
 ..\src\UPLib\UP_Woody_ColorAndCode.h(18): warning:  #1-D: last line of file ends without a newline
   #endif
-..\src\main.c(85): warning:  #1295-D: Deprecated declaration InitSys - give arg types
+..\src\main.c(86): warning:  #1295-D: Deprecated declaration InitSys - give arg types
   void InitSys();		//初始化系统
-..\src\main.c(86): warning:  #1295-D: Deprecated declaration InitGear - give arg types
+..\src\main.c(87): warning:  #1295-D: Deprecated declaration InitGear - give arg types
   void InitGear();	//初始化舵机
-..\src\main.c(87): warning:  #1295-D: Deprecated declaration InitMotor - give arg types
+..\src\main.c(88): warning:  #1295-D: Deprecated declaration InitMotor - give arg types
   void InitMotor();	//初始化电机
-..\src\main.c(88): warning:  #1295-D: Deprecated declaration InitForepaw - give arg types
+..\src\main.c(89): warning:  #1295-D: Deprecated declaration InitForepaw - give arg types
   void InitForepaw(); //初始化前爪
-..\src\main.c(89): warning:  #1295-D: Deprecated declaration InitHindpaw - give arg types
+..\src\main.c(90): warning:  #1295-D: Deprecated declaration InitHindpaw - give arg types
   void InitHindpaw(); //初始化后爪 
-..\src\main.c(90): warning:  #1295-D: Deprecated declaration InitClaw - give arg types
+..\src\main.c(91): warning:  #1295-D: Deprecated declaration InitClaw - give arg types
   void InitClaw();	//初始化爪子
-..\src\main.c(98): warning:  #1295-D: Deprecated declaration MoveStop - give arg types
+..\src\main.c(99): warning:  #1295-D: Deprecated declaration MoveStop - give arg types
   void MoveStop(); 			//停下
-..\src\main.c(100): warning:  #1295-D: Deprecated declaration SoftStart - give arg types
+..\src\main.c(101): warning:  #1295-D: Deprecated declaration SoftStart - give arg types
   void SoftStart(); 	//软启动函数
-..\src\main.c(101): warning:  #1295-D: Deprecated declaration OnStage - give arg types
+..\src\main.c(102): warning:  #1295-D: Deprecated declaration OnStage - give arg types
   void OnStage();		//在台上的主函数
-..\src\main.c(103): warning:  #1295-D: Deprecated declaration MoveBeforeUpStage - give arg types
+..\src\main.c(104): warning:  #1295-D: Deprecated declaration MoveBeforeUpStage - give arg types
   void MoveBeforeUpStage(); 	//上台前的向前走
-..\src\main.c(104): warning:  #1295-D: Deprecated declaration FirstUpStage - give arg types
+..\src\main.c(105): warning:  #1295-D: Deprecated declaration FirstUpStage - give arg types
   void FirstUpStage();		//第一次上台
-..\src\main.c(106): warning:  #1295-D: Deprecated declaration GetInfraredSenorState - give arg types
+..\src\main.c(107): warning:  #1295-D: Deprecated declaration GetInfraredSenorState - give arg types
   int GetInfraredSenorState();	//获取红外传感器状态
-..\src\main.c(108): warning:  #1295-D: Deprecated declaration GetGraySenorState - give arg types
+..\src\main.c(109): warning:  #1295-D: Deprecated declaration GetGraySenorState - give arg types
   int GetGraySenorState(); 		//获取灰度传感器状态
-..\src\main.c(110): warning:  #1295-D: Deprecated declaration ClawDownF - give arg types
+..\src\main.c(110): warning:  #1295-D: Deprecated declaration GrayCheck - give arg types
+  int GrayCheck();				//根据灰度传感器获取速度
+..\src\main.c(112): warning:  #1295-D: Deprecated declaration ClawDownF - give arg types
   void ClawDownF();	//放下前爪
-..\src\main.c(111): warning:  #1295-D: Deprecated declaration ClawDownB - give arg types
+..\src\main.c(113): warning:  #1295-D: Deprecated declaration ClawDownB - give arg types
   void ClawDownB();	//放下后爪
-..\src\main.c(116): warning:  #1295-D: Deprecated declaration DebugGearbalan - give arg types
+..\src\main.c(118): warning:  #1295-D: Deprecated declaration DebugGearbalan - give arg types
   void DebugGearbalan();	//测试爪子平衡位置
-..\src\main.c(118): warning:  #1295-D: Deprecated declaration DebugGrayScaleSensor - give arg types
+..\src\main.c(120): warning:  #1295-D: Deprecated declaration DebugGrayScaleSensor - give arg types
   void DebugGrayScaleSensor(); //测试灰度传感器
-..\src\main.c(708): warning:  #1-D: last line of file ends without a newline
+..\src\main.c(726): warning:  #1-D: last line of file ends without a newline
   // }
-..\src\main.c: 30 warnings, 0 errors
+..\src\main.c: 31 warnings, 0 errors
 linking...
-Program Size: Code=9452 RO-data=336 RW-data=212 ZI-data=1508  
+Program Size: Code=9224 RO-data=336 RW-data=212 ZI-data=1508  
 FromELF: creating hex file...
 After Build - User command #1: D:\InstallationPackage\keil\ARM\ARMCLANG\bin\fromelf.exe "..\List\UP_ADC.axf" --bin --output "..\BenFromHRBUST.bin"
-"..\List\UP_ADC.axf" - 0 Error(s), 30 Warning(s).
-Build Time Elapsed:  00:00:04
+"..\List\UP_ADC.axf" - 0 Error(s), 31 Warning(s).
+Build Time Elapsed:  00:00:01
 </pre>
 </body>
 </html>

@@ -47,17 +47,18 @@ const int GEAR_ANGLE_INIT = 400; //初始化舵机变换角度
 
 //速度
 const int SPEED_GEAR = 800;	//舵机速度
-const int SPEED_MOTOR = 340; //上台时电机速度
-const int SPEED_MOTOR_TURN = 350; //转向时电机速度
-const int SPEED_MOTOR_ON_STAGE = 370; //上台后电机速度
+const int SPEED_MOTOR = 500; //上台时电机速度
+const int SPEED_MOTOR_TURN = 450; //转向时电机速度
+const int SPEED_MOTOR_ON_STAGE = 400; //上台后电机速度
 const int SPEED_MOTOR_ATTACK = 400;	//上台后的攻击速度
 const int SPEED_MOTOR_TURN_ATTACK = 500; //上台后的转向攻击速度
 const int SPEED_MOTOR_TURN_ATTACK_TIME = 400; //上台后转向攻击延时
+const int SPEED_MOTOR_STOP = 400;	//刹车反转速度
 
 //延时
 const int DELAY_UP_STAGE = 750; //上台延时
 const int DELAY_UP_STOP_BACK = 200; //后退延时
-const int DELAY_UP_BACK = 3; //反转延迟
+const int DELAY_UP_BACK = 100; //反转延迟
 
 /**************************************************************************************************************/
 /***********************************************常量End**********************************************************/
@@ -106,13 +107,14 @@ void FirstUpStage();		//第一次上台
 int GetInfraredSenorState();	//获取红外传感器状态
 int ChangeInfrared(int); 		//红外传感器模拟量转话为数字量
 int GetGraySenorState(); 		//获取灰度传感器状态
+int GrayCheck();				//根据灰度传感器获取速度
 
 void ClawDownF();	//放下前爪
 void ClawDownB();	//放下后爪
 
 //Debug函数
 // void DebugSensor(int,int,int);
-void LcdShowInt(int); 	//LCD屏幕上显示数字
+void LcdShowInt(char[], int); 	//LCD屏幕上显示数字
 void DebugGearbalan();	//测试爪子平衡位置
 void DebugInfraredSensor(int,int,int); //测试红外传感器
 void DebugGrayScaleSensor(); //测试灰度传感器
@@ -143,16 +145,22 @@ int main(void)
 	// }
 
 	//软启动
-	SoftStart();
+	// SoftStart();
 	
 	//第一次上台
-	MoveBeforeUpStage();
-	FirstUpStage();	
+	// MoveBeforeUpStage();
+	// FirstUpStage();	
+	UP_CDS_SetAngle(GEAR_FRONT_LEFT, GEAR_ANGLE_FRONT_LEFT, SPEED_GEAR);
+	UP_CDS_SetAngle(GEAR_FRONT_RIGHT, GEAR_ANGLE_FRONT_RIGHT, SPEED_GEAR);
+	UP_delay_ms(DELAY_UP_STAGE + 50);
 
 	// DebugInfraredSensor(1,1,INFRARED_F);
 
 	//台上瞎溜达
 	OnStage();
+	// while(1) {
+	// 	MoveForword(500);
+	// }
 }
 
 /**************************************************************************************************************/
@@ -293,7 +301,7 @@ void MoveStop() {
  * LastBuild: 20201006
  */
 void MoveForword(int speed) {
-	UP_CDS_SetSpeed(MOTOR_LEFT, speed);
+	UP_CDS_SetSpeed(MOTOR_LEFT, speed + 15);
 	UP_CDS_SetSpeed(MOTOR_RIGHT, -speed);
 	G_flagTurnF = TRUE;
 }
@@ -307,7 +315,7 @@ void MoveForword(int speed) {
  * LastBuild: 20201006
  */
 void MoveBack(int speed) {
-	UP_CDS_SetSpeed(MOTOR_LEFT, -speed);
+	UP_CDS_SetSpeed(MOTOR_LEFT, -speed - 15);
 	UP_CDS_SetSpeed(MOTOR_RIGHT, speed);
 }
 
@@ -334,7 +342,8 @@ void MoveQuickStop(int speed) {
  */
 void MoveRight(int speed) {
 	if (G_flagTurnF == TRUE) {
-		MoveStop();
+		MoveBack(SPEED_MOTOR_STOP);
+		UP_delay_ms(DELAY_UP_BACK);
 	}
 	UP_CDS_SetSpeed(MOTOR_LEFT, speed);
 	UP_CDS_SetSpeed(MOTOR_RIGHT, speed);
@@ -352,7 +361,8 @@ void MoveRight(int speed) {
  */
 void MoveLeft(int speed) {
 	if (G_flagTurnF == TRUE) {
-		MoveStop();
+		MoveBack(SPEED_MOTOR_STOP);
+		UP_delay_ms(DELAY_UP_BACK);
 	}
 	UP_CDS_SetSpeed(MOTOR_LEFT, -speed);
 	UP_CDS_SetSpeed(MOTOR_RIGHT, -speed);
@@ -393,7 +403,7 @@ void SoftStart() {
  */
 void MoveBeforeUpStage() {
 	MoveBack(SPEED_MOTOR);
-	UP_delay_ms(1800);	//行走至擂台边缘
+	UP_delay_ms(300);	//行走至擂台边缘
 	//MoveQuickStop(SPEED_MOTOR);
 }
 
@@ -495,15 +505,24 @@ int GetInfraredSenorState() {
 	return -1;
 }
 
-void GrayCheck() {
+int GrayCheck() {
 	int GrayState;
+	float GrayImin, GrayImax;
+	float SpeedImin, SpeedImax;
+	float Speed;
 	GrayState = UP_ADC_GetValue(GRAY);
-	// LcdShowInt(GrayState);
-	if (GrayState >= 2800) {
-		MoveForword(SPEED_MOTOR_ON_STAGE + 100);
-	} else {
-		MoveForword(SPEED_MOTOR_ON_STAGE - 200);
-	}
+	LcdShowInt("GrayState", GrayState);
+
+	GrayImin = 2500, GrayImax = 3100;
+	SpeedImin = 200, SpeedImax = 500;
+	Speed = ((SpeedImax - SpeedImin) / (GrayImax - GrayImin)) * (GrayState) + SpeedImin ;
+	LcdShowInt("Speed", (int)Speed);
+	return (int)Speed;
+	// if (GrayState >= 2800) {
+	// 	MoveForword(SPEED_MOTOR_ON_STAGE + 100);
+	// } else {
+	// 	MoveForword(SPEED_MOTOR_ON_STAGE - 200);
+	// }
 }
 
 void Fight() {
@@ -584,7 +603,7 @@ void WakeOnStage() {
 		break;
 	case 6:
 		// MoveStop();
-		// MoveBack(SPEED_MOTOR_ON_STAGE);
+		// MoveBack(SPEED_MOTOR_ON_STAGE);S
 		// UP_delay_ms(DELAY_UP_STOP_BACK);
 		MoveRight(SPEED_MOTOR_TURN);
 		break;
@@ -616,7 +635,6 @@ void OnStage() {
 	while(1) {
 		WakeOnStage();
 		// Fight();
-		GrayCheck();
 	}
 }
 
@@ -645,8 +663,8 @@ int ChangeInfrared(int id) {
  * Descr: 显示屏上显示数字x
  * LastBuild: 20200930
  */
-void LcdShowInt(int x) {
-	printf("grayValue = %d\n",x);
+void LcdShowInt(char ch[], int x) {
+	printf("%s = %d\n", ch, x);
 	UP_delay_ms(400);
 	UP_LCD_ClearScreen();
 }
