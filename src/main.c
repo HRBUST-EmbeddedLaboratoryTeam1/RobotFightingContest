@@ -48,17 +48,17 @@ const int GEAR_ANGLE_INIT = 400; //初始化舵机变换角度
 //速度
 const int SPEED_GEAR = 800;	//舵机速度
 const int SPEED_MOTOR = 500; //上台时电机速度
-const int SPEED_MOTOR_TURN = 450; //转向时电机速度
+const int SPEED_MOTOR_TURN = 400; //转向时电机速度
 const int SPEED_MOTOR_ON_STAGE = 400; //上台后电机速度
 const int SPEED_MOTOR_ATTACK = 400;	//上台后的攻击速度
 const int SPEED_MOTOR_TURN_ATTACK = 500; //上台后的转向攻击速度
 const int SPEED_MOTOR_TURN_ATTACK_TIME = 400; //上台后转向攻击延时
-const int SPEED_MOTOR_STOP = 400;	//刹车反转速度
+const int SPEED_MOTOR_STOP = 800;	//刹车反转速度
 
 //延时
 const int DELAY_UP_STAGE = 750; //上台延时
-const int DELAY_UP_STOP_BACK = 200; //后退延时
-const int DELAY_UP_BACK = 100; //反转延迟
+const int DELAY_UP_STOP_BACK = 500; //后退延时
+const int DELAY_UP_BACK = 200; //反转延迟
 
 /**************************************************************************************************************/
 /***********************************************常量End**********************************************************/
@@ -71,6 +71,7 @@ const int DELAY_UP_BACK = 100; //反转延迟
 /**************************************************************************************************************/
 
 bool G_flagTurnF = FALSE;	//记录是否需要刹车
+bool flagBack = FALSE;
 
 /**************************************************************************************************************/
 /***********************************************变量End**********************************************************/
@@ -596,10 +597,10 @@ void WakeOnStage() {
 		break;
 	case 5:
 		// MoveStop();
-		MoveBack(SPEED_MOTOR_ON_STAGE);
+		MoveBack(SPEED_MOTOR_STOP);
 		UP_delay_ms(DELAY_UP_STOP_BACK);
 		MoveRight(SPEED_MOTOR_TURN);
-		// UP_delay_ms(500);
+		UP_delay_ms(100);
 		break;
 	case 6:
 		// MoveStop();
