@@ -53,12 +53,12 @@ const int SPEED_MOTOR_ON_STAGE = 400; //上台后电机速度
 const int SPEED_MOTOR_ATTACK = 400;	//上台后的攻击速度
 const int SPEED_MOTOR_TURN_ATTACK = 500; //上台后的转向攻击速度
 const int SPEED_MOTOR_TURN_ATTACK_TIME = 400; //上台后转向攻击延时
-const int SPEED_MOTOR_STOP = 800;	//刹车反转速度
+const int SPEED_MOTOR_STOP = 1000;	//刹车反转速度
 
 //延时
 const int DELAY_UP_STAGE = 750; //上台延时
 const int DELAY_UP_STOP_BACK = 500; //后退延时
-const int DELAY_UP_BACK = 200; //反转延迟
+const int DELAY_UP_BACK = 100; //反转延迟
 
 /**************************************************************************************************************/
 /***********************************************常量End**********************************************************/
@@ -95,7 +95,6 @@ void InitClaw();	//初始化爪子
 void MoveForword(int); 		//向前走
 void MoveLeft(int);			//左转
 void MoveRight(int);		//右转
-void MoveQuickStop(int);    //反转
 void MoveBack(int);
 void MoveStop(); 			//停下
 
@@ -113,8 +112,9 @@ int GrayCheck();				//根据灰度传感器获取速度
 void ClawDownF();	//放下前爪
 void ClawDownB();	//放下后爪
 
+bool Fight();
+
 //Debug函数
-// void DebugSensor(int,int,int);
 void LcdShowInt(char[], int); 	//LCD屏幕上显示数字
 void DebugGearbalan();	//测试爪子平衡位置
 void DebugInfraredSensor(int,int,int); //测试红外传感器
@@ -155,13 +155,8 @@ int main(void)
 	UP_CDS_SetAngle(GEAR_FRONT_RIGHT, GEAR_ANGLE_FRONT_RIGHT, SPEED_GEAR);
 	UP_delay_ms(DELAY_UP_STAGE + 50);
 
-	// DebugInfraredSensor(1,1,INFRARED_F);
-
 	//台上瞎溜达
 	OnStage();
-	// while(1) {
-	// 	MoveForword(500);
-	// }
 }
 
 /**************************************************************************************************************/
@@ -321,19 +316,6 @@ void MoveBack(int speed) {
 }
 
 /**
- * Title: MoveQuickStop(int)
- * args: spped - 运行速度
- * Return: None
- * Author: Ben
- * Descr: 以速度speed反转，抵消惯性影响，快速刹车
- * LastBuild: 20201006
- */
-void MoveQuickStop(int speed) {
-	UP_CDS_SetSpeed(MOTOR_LEFT, speed + 200);
-	UP_CDS_SetSpeed(MOTOR_RIGHT, -speed - 200);
-}
-
-/**
  * Title: MoveRight(int)
  * args: spped - 运行速度
  * Return: None
@@ -342,10 +324,6 @@ void MoveQuickStop(int speed) {
  * LastBuild: 20201006
  */
 void MoveRight(int speed) {
-	if (G_flagTurnF == TRUE) {
-		MoveBack(SPEED_MOTOR_STOP);
-		UP_delay_ms(DELAY_UP_BACK);
-	}
 	UP_CDS_SetSpeed(MOTOR_LEFT, speed);
 	UP_CDS_SetSpeed(MOTOR_RIGHT, speed);
 	// UP_delay_ms(100);
@@ -361,13 +339,8 @@ void MoveRight(int speed) {
  * LastBuild: 20201006
  */
 void MoveLeft(int speed) {
-	if (G_flagTurnF == TRUE) {
-		MoveBack(SPEED_MOTOR_STOP);
-		UP_delay_ms(DELAY_UP_BACK);
-	}
 	UP_CDS_SetSpeed(MOTOR_LEFT, -speed);
 	UP_CDS_SetSpeed(MOTOR_RIGHT, -speed);
-	// UP_delay_ms(100);
 	G_flagTurnF = FALSE;
 }
 
@@ -405,7 +378,6 @@ void SoftStart() {
 void MoveBeforeUpStage() {
 	MoveBack(SPEED_MOTOR);
 	UP_delay_ms(300);	//行走至擂台边缘
-	//MoveQuickStop(SPEED_MOTOR);
 }
 
 /**
@@ -417,7 +389,6 @@ void MoveBeforeUpStage() {
  */
 void FirstUpStage()
 {
-	// printf("XXXXXXXXXXXXXXXXX");
 	//后爪向下
 	UP_CDS_SetAngle(GEAR_BACK_LEFT,GEAR_ANGLE_BACK_LEFT + 150, SPEED_GEAR);
 	UP_CDS_SetAngle(GEAR_BACK_RIGHT,GEAR_ANGLE_BACK_RIGHT - 150, SPEED_GEAR);
@@ -444,11 +415,6 @@ void FirstUpStage()
 	MoveLeft(SPEED_MOTOR_TURN_ATTACK);
 	UP_delay_ms(770);
 	MoveStop();
-	
-//	ClawDownF();
-//	// ClawDownB();
-//	InitHindpaw();
-//	UP_delay_ms(DELAY_UP_STAGE);
 }
 
 
@@ -519,21 +485,12 @@ int GrayCheck() {
 	Speed = ((SpeedImax - SpeedImin) / (GrayImax - GrayImin)) * (GrayState) + SpeedImin ;
 	LcdShowInt("Speed", (int)Speed);
 	return (int)Speed;
-	// if (GrayState >= 2800) {
-	// 	MoveForword(SPEED_MOTOR_ON_STAGE + 100);
-	// } else {
-	// 	MoveForword(SPEED_MOTOR_ON_STAGE - 200);
-	// }
 }
 
-void Fight() {
+bool Fight() {
 	int cnt = 0;
 	int countCnt = 60;
 	if(ChangeInfrared(INFRARED_B) == 0 || ChangeInfrared(INFRARED_L) == 0 || ChangeInfrared(INFRARED_R) == 0) {
-		// MoveBack(SPEED_MOTOR_ON_STAGE);
-		// UP_delay_ms(3);
-		// MoveStop();
-		// UP_delay_ms(100);
 		if(ChangeInfrared(INFRARED_B) == 0) {
 			MoveLeft(SPEED_MOTOR_TURN);
 			countCnt = 120;
@@ -563,61 +520,53 @@ void Fight() {
 void WakeOnStage() {
 	int InfraredSensorStateTurn;	//转向红外状态
 	InfraredSensorStateTurn = GetInfraredSenorState();
+	LcdShowInt("DebugStatus", InfraredSensorStateTurn);
 	switch (InfraredSensorStateTurn)
 	{
 	case 0:
-		// MoveStop();
-		// MoveBack(SPEED_MOTOR_ON_STAGE);
-		// UP_delay_ms(500);
 		MoveForword(SPEED_MOTOR_ON_STAGE);
 		break;
 	case 1:
-		// MoveStop();
-		// MoveBack(SPEED_MOTOR_ON_STAGE);
-		// UP_delay_ms(DELAY_UP_STOP_BACK);
+		if (G_flagTurnF == TRUE) {
+			MoveBack(SPEED_MOTOR_STOP);
+			UP_delay_ms(DELAY_UP_BACK);
+		}
 		MoveLeft(SPEED_MOTOR_TURN);
 		break;
 	case 2:
-		// MoveStop();
-		// MoveBack(SPEED_MOTOR_ON_STAGE);
-		// UP_delay_ms(DELAY_UP_STOP_BACK);
+		if (G_flagTurnF == TRUE) {
+			MoveBack(SPEED_MOTOR_STOP);
+			UP_delay_ms(DELAY_UP_BACK);
+		}
 		MoveRight(SPEED_MOTOR_TURN);
 		break;
 	case 3:
-		// MoveStop();
-		// MoveBack(SPEED_MOTOR_ON_STAGE);
-		// UP_delay_ms(500);
 		MoveForword(SPEED_MOTOR_ON_STAGE);
 		break;
 	case 4:
-		// MoveStop();
-		// MoveBack(SPEED_MOTOR_ON_STAGE);
-		// UP_delay_ms(500);
 		MoveForword(SPEED_MOTOR_ON_STAGE);
 		break;
 	case 5:
-		// MoveStop();
 		MoveBack(SPEED_MOTOR_STOP);
 		UP_delay_ms(DELAY_UP_STOP_BACK);
-		MoveRight(SPEED_MOTOR_TURN);
-		UP_delay_ms(100);
+		MoveLeft(SPEED_MOTOR_TURN_ATTACK);
+		UP_delay_ms(700);
 		break;
 	case 6:
-		// MoveStop();
-		// MoveBack(SPEED_MOTOR_ON_STAGE);S
-		// UP_delay_ms(DELAY_UP_STOP_BACK);
+		if (G_flagTurnF == TRUE) {
+			MoveBack(SPEED_MOTOR_STOP);
+			UP_delay_ms(DELAY_UP_BACK);
+		}
 		MoveRight(SPEED_MOTOR_TURN);
 		break;
 	case 7:
-		// MoveStop();
-		// MoveBack(SPEED_MOTOR_ON_STAGE);
-		// UP_delay_ms(500);
 		MoveForword(SPEED_MOTOR_ON_STAGE);
 		break;
 	case 8:
-		// MoveStop();
-		// MoveBack(SPEED_MOTOR_ON_STAGE);
-		// UP_delay_ms(DELAY_UP_STOP_BACK);
+		if (G_flagTurnF == TRUE) {
+			MoveBack(SPEED_MOTOR_STOP);
+			UP_delay_ms(DELAY_UP_BACK);
+		}
 		MoveLeft(SPEED_MOTOR_TURN);
 		break;
 	default:
@@ -634,8 +583,12 @@ void WakeOnStage() {
  */
 void OnStage() {
 	while(1) {
-		WakeOnStage();
-		// Fight();
+        // if(ChangeInfrared(INFRARED_B) == 1 && ChangeInfrared(INFRARED_F) == 1 && ChangeInfrared(INFRARED_L) == 1 && ChangeInfrared(INFRARED_R) == 1) {
+		    WakeOnStage();
+        // }
+        // else {
+            // Fight();
+        // }
 	}
 }
 
@@ -703,25 +656,3 @@ void DebugSensor(int x,int y,int id) {
 	// printf("end\n");
 }
 
-/**
- * Title: DebugGrayScaleSensor()
- * Return: None
- * Author: Altria
- * Descr: 调试灰度传感器
- * LastBuild: 20201004
- */
-// void DebugGrayScaleSensor() {
-// 	int AD1,AD2,AD3,AD4;
-// 	ClawDownF();
-// 	ClawDownB();
-// 	UP_delay_ms(DELAY_UP_STAGE);
-// 	while(1) {
-// 		AD1 = UP_ADC_GetValue(GRAY_BL);
-// 		AD2 = UP_ADC_GetValue(GRAY_BR);
-// 		AD3 = UP_ADC_GetValue(GRAY_FL);   
-// 		AD4 = UP_ADC_GetValue(GRAY_FR);
-// 		// printf("BL: %d\n BR: %d\n FL: %d\n FR: %d\n",AD1,AD2,AD3,AD4);
-// 		UP_delay_ms(400);
-// 		UP_LCD_ClearScreen();
-// 	}
-// }
