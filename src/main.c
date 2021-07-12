@@ -487,33 +487,35 @@ int GrayCheck() {
 }
 
 bool Fight() {
-	int cnt = 0;
-	int countCnt = 60;
-	if(ChangeInfrared(INFRARED_B) == 0 || ChangeInfrared(INFRARED_L) == 0 || ChangeInfrared(INFRARED_R) == 0) {
-		if(ChangeInfrared(INFRARED_B) == 0) {
+	if (ChangeInfrared(INFRARED_B) == 0) {
+		int cnt = 0;
+		while (ChangeInfrared(INFRARED_F)==1 && ChangeInfrared(INFRARED_R)==1 && ChangeInfrared(INFRARED_L)==1 && cnt < 120) {
+			cnt ++;
 			MoveLeft(SPEED_MOTOR_TURN);
-			countCnt = 120;
-		} else if(ChangeInfrared(INFRARED_L) == 0) {
+		}
+		return TRUE;
+	}
+	else if (ChangeInfrared(INFRARED_L) == 0) {
+		int cnt = 0;
+		while (ChangeInfrared(INFRARED_F)==1 && ChangeInfrared(INFRARED_R)==1 && ChangeInfrared(INFRARED_B)==1 && cnt < 120) {
+			cnt ++;
 			MoveLeft(SPEED_MOTOR_TURN);
-		} else if(ChangeInfrared(INFRARED_R) == 0) {
+		}
+		return TRUE;
+	}
+	else if (ChangeInfrared(INFRARED_R) == 0) {
+		int cnt = 0;
+		while (ChangeInfrared(INFRARED_F)==1 && ChangeInfrared(INFRARED_B)==1 && ChangeInfrared(INFRARED_L)==1 && cnt < 120) {
+			cnt ++;
 			MoveRight(SPEED_MOTOR_TURN);
 		}
-		while(ChangeInfrared(INFRARED_F) == 1 && cnt <= countCnt) {
-			cnt++;
-			// printf("%d\n",cnt);
-		}
-		cnt = 0;
-		UP_delay_ms(500);
-		MoveStop();
+		return TRUE;
 	}
-	if (ChangeInfrared(INFRARED_LF) == 0) {
-		MoveRight(SPEED_MOTOR_ON_STAGE);
-	} else if (ChangeInfrared(INFRARED_RF) == 0) {
-		MoveLeft(SPEED_MOTOR_ON_STAGE);
-	}
-	if (ChangeInfrared(INFRARED_F) == 0) {	//前面检测到物体
+	else if (ChangeInfrared(INFRARED_F) == 0 && ChangeInfrared(INFRARED_FL) == 0 && ChangeInfrared(INFRARED_FR) == 0) {
 		MoveForword(SPEED_MOTOR_ATTACK);
+		return TRUE;
 	}
+	return FALSE;
 }
 
 void WakeOnStage() {
@@ -580,12 +582,9 @@ void WakeOnStage() {
  */
 void OnStage() {
 	while(1) {
-        // if(ChangeInfrared(INFRARED_B) == 1 && ChangeInfrared(INFRARED_F) == 1 && ChangeInfrared(INFRARED_L) == 1 && ChangeInfrared(INFRARED_R) == 1) {
+        if(!Fight()) {
 		    WakeOnStage();
-        // }
-        // else {
-            // Fight();
-        // }
+        }
 	}
 }
 
