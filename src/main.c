@@ -57,8 +57,7 @@ const int SPEED_MOTOR_STOP = 1000;	//刹车反转速度
 
 //延时
 const int DELAY_UP_STAGE = 750; //上台延时
-const int DELAY_UP_STOP_BACK = 500; //后退延时
-const int DELAY_UP_BACK = 100; //反转延迟
+const int DELAY_UP_BACK = 50; //反转延迟
 
 /**************************************************************************************************************/
 /***********************************************常量End**********************************************************/
@@ -478,12 +477,12 @@ int GrayCheck() {
 	float SpeedImin, SpeedImax;
 	float Speed;
 	GrayState = UP_ADC_GetValue(GRAY);
-	LcdShowInt("GrayState", GrayState);
+	// LcdShowInt("GrayState", GrayState);
 
 	GrayImin = 2500, GrayImax = 3100;
 	SpeedImin = 200, SpeedImax = 500;
 	Speed = ((SpeedImax - SpeedImin) / (GrayImax - GrayImin)) * (GrayState) + SpeedImin ;
-	LcdShowInt("Speed", (int)Speed);
+	// LcdShowInt("Speed", (int)Speed);
 	return (int)Speed;
 }
 
@@ -520,7 +519,7 @@ bool Fight() {
 void WakeOnStage() {
 	int InfraredSensorStateTurn;	//转向红外状态
 	InfraredSensorStateTurn = GetInfraredSenorState();
-	LcdShowInt("DebugStatus", InfraredSensorStateTurn);
+	// LcdShowInt("DebugStatus", InfraredSensorStateTurn);
 	switch (InfraredSensorStateTurn)
 	{
 	case 0:
@@ -548,9 +547,7 @@ void WakeOnStage() {
 		break;
 	case 5:
 		MoveBack(SPEED_MOTOR_STOP);
-		UP_delay_ms(DELAY_UP_STOP_BACK);
-		MoveLeft(SPEED_MOTOR_TURN_ATTACK);
-		UP_delay_ms(700);
+		UP_delay_ms(DELAY_UP_BACK);
 		break;
 	case 6:
 		if (G_flagTurnF == TRUE) {
