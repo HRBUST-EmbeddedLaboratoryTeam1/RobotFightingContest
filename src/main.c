@@ -359,7 +359,7 @@ void MoveRight(int speed) {
  */
 void MoveLeft(int speed) {
 	UP_CDS_SetSpeed(MOTOR_LEFT, -speed);
-	UP_CDS_SetSpeed(MOTOR_RIGHT, -speed);
+	UP_CDS_SetSpeed(MOTOR_RIGHT, -speed - 30);
 	G_flagTurnF = FALSE;
 }
 
@@ -650,19 +650,60 @@ int ChangeInfrared(int id) {
 void OutStage() {
 	//前爪和后爪都抬起来
 	InitClaw();
+	// LcdShowInt("Zero Succesed!", 0);
 	//旋转
-	while (ChangeInfrared(INFRARED_L) == 1 || ChangeInfrared(INFRARED_R) == 1) {
-		MoveLeft(SPEED_MOTOR_TURN);
+	while (1) {
+		if (UP_ADC_GetValue(DISTANCE_B) > 100 
+					&& (ChangeInfrared(INFRARED_L) == 1 || ChangeInfrared(INFRARED_R) == 1)) {
+			MoveStop();
+			MoveForword(SPEED_MOTOR_ON_STAGE);
+			UP_delay_ms(1000);
+			break;
+		} 
+		else if (ChangeInfrared(INFRARED_L) == 1 || ChangeInfrared(INFRARED_R) == 1) {
+			MoveRight(SPEED_MOTOR_TURN);
+		}
+		else {
+			MoveStop();
+			break;
+		}
+		
 	}
-	while (ChangeInfrared(INFRARED_B) == 0) {
-		MoveForword(SPEED_MOTOR_ON_STAGE);
+	LcdShowInt("First Succesed!", 0);
+	// while (1) {
+	// 	if (ChangeInfrared(INFRARED_B) == 0) {
+	// 		;
+	// 	} else {
+	// 		MoveStop();
+	// 		break;
+	// 	}
+	// }
+	// LcdShowInt("Second Succesed!", 0);
+	while (1) {
+		if ((ChangeInfrared(INFRARED_L) == 0 || ChangeInfrared(INFRARED_R) == 0) 
+		|| ChangeInfrared(INFRARED_B) == 1 || UP_ADC_GetValue(DISTANCE_B) > 100) {
+			MoveRight(SPEED_MOTOR_TURN);
+		} else {
+			MoveStop();
+			break;
+		}
 	}
-	//转向正确的位置
-	MoveLeft(SPEED_MOTOR_TURN);
-	UP_delay_ms(DELAY_DOWN_STAGE);
+	
 	//上台
-	MoveForword(SPEED_MOTOR_ON_STAGE);
+	MoveBack(SPEED_MOTOR_ON_STAGE);
+	UP_delay_ms(500);
 	FirstUpStage();
+
+	// LcdShowInt("ZY YYDS", 0);
+	// while (ChangeInfrared(INFRARED_B) == 0) {
+	// 	MoveForword(SPEED_MOTOR_ON_STAGE);
+	// }
+	// //转向正确的位置
+	// MoveLeft(SPEED_MOTOR_TURN);
+	// UP_delay_ms(DELAY_DOWN_STAGE);
+	// //上台
+	// MoveForword(SPEED_MOTOR_ON_STAGE);
+	// FirstUpStage();
 }
 
 /**************************************************************************************************************/
