@@ -41,6 +41,11 @@ const int INFRARED_R = 3; 	//右边红外传感器
 const int INFRARED_LF = 11; //铲子左边红外传感器
 const int INFRARED_RF = 8;  //铲子右边红外传感器
 const int GRAY = 5;         //铲子下面灰度传感器
+const int DISTANCE_F = 12;  //前侧测距
+const int DISTANCE_R = 13;	//右侧测距
+const int DISTANCE_L = 14;	//左侧测距
+const int DISTANCE_B = 15;	//后侧测距
+const int DIP_ANGLE = 4;	//倾角
 
 //舵机初始化角度
 const int GEAR_ANGLE_INIT = 400; //初始化舵机变换角度
@@ -50,7 +55,7 @@ const int SPEED_GEAR = 800;	//舵机速度
 const int SPEED_MOTOR = 500; //上台时电机速度
 const int SPEED_MOTOR_TURN = 400; //转向时电机速度
 const int SPEED_MOTOR_ON_STAGE = 400; //上台后电机速度
-const int SPEED_MOTOR_ATTACK = 400;	//上台后的攻击速度
+const int SPEED_MOTOR_ATTACK = 700;	//上台后的攻击速度
 const int SPEED_MOTOR_TURN_ATTACK = 500; //上台后的转向攻击速度
 const int SPEED_MOTOR_TURN_ATTACK_TIME = 400; //上台后转向攻击延时
 const int SPEED_MOTOR_STOP = 1000;	//刹车反转速度
@@ -58,6 +63,8 @@ const int SPEED_MOTOR_STOP = 1000;	//刹车反转速度
 //延时
 const int DELAY_UP_STAGE = 750; //上台延时
 const int DELAY_UP_BACK = 50; //反转延迟
+const int DELAY_UP_STOP = 10; //停下来延时
+const int DELAY_DOWN_STAGE = 100; //台下旋转延时
 
 /**************************************************************************************************************/
 /***********************************************常量End**********************************************************/
@@ -70,7 +77,7 @@ const int DELAY_UP_BACK = 50; //反转延迟
 /**************************************************************************************************************/
 
 bool G_flagTurnF = FALSE;	//记录是否需要刹车
-bool flagBack = FALSE;
+bool AttackFlag = FALSE;	//是否调用过攻击状态
 
 /**************************************************************************************************************/
 /***********************************************变量End**********************************************************/
@@ -99,6 +106,7 @@ void MoveStop(); 			//停下
 
 void SoftStart(); 	//软启动函数
 void OnStage();		//在台上的主函数
+void OutStage();    //台下主动上台函数
 
 void MoveBeforeUpStage(); 	//上台前的向前走
 void FirstUpStage();		//第一次上台
@@ -114,10 +122,12 @@ void ClawDownB();	//放下后爪
 bool Fight();
 
 //Debug函数
-void LcdShowInt(char[], int); 	//LCD屏幕上显示数字
-void DebugGearbalan();	//测试爪子平衡位置
-void DebugInfraredSensor(int,int,int); //测试红外传感器
-void DebugGrayScaleSensor(); //测试灰度传感器
+void LcdShowInt(char[], int); 			//LCD屏幕上显示数字
+void DebugGearbalan();					//测试爪子平衡位置
+void DebugInfraredSensor(int,int,int);	//测试红外传感器
+void DebugGrayScaleSensor(); 			//测试灰度传感器
+void DebugDistance(int);				//测试测距
+void DebugDipAngle();					//测试倾角
 
 /***************************************************************************************************************/
 /***********************************************声明函数End******************************************************/
@@ -143,6 +153,15 @@ int main(void)
 	// 	MoveQuickStop(SPEED_MOTOR_ON_STAGE);
 	// 	UP_delay_ms(10);
 	// }
+	// while(1) {
+	// 	printf("L = %d\n", ChangeInfrared(INFRARED_L));
+	// 	printf("R = %d\n", ChangeInfrared(INFRARED_R));
+	// 	printf("B = %d\n", ChangeInfrared(INFRARED_B));
+	// 	printf("LF = %d\n", ChangeInfrared(INFRARED_LF));
+	// 	printf("RF = %d\n", ChangeInfrared(INFRARED_RF));
+	// 	UP_delay_ms(400);
+	// 	UP_LCD_ClearScreen();
+	// }
 
 	//软启动
 	// SoftStart();
@@ -155,7 +174,8 @@ int main(void)
 	UP_delay_ms(DELAY_UP_STAGE + 50);
 
 	//台上瞎溜达
-	OnStage();
+	// OnStage();
+	OutStage();
 }
 
 /**************************************************************************************************************/
@@ -487,34 +507,50 @@ int GrayCheck() {
 }
 
 bool Fight() {
+	int cnt;
 	if (ChangeInfrared(INFRARED_B) == 0) {
-		int cnt = 0;
-		while (ChangeInfrared(INFRARED_F)==1 && ChangeInfrared(INFRARED_R)==1 && ChangeInfrared(INFRARED_L)==1 && cnt < 120) {
+		cnt = 0;
+		while ((ChangeInfrared(INFRARED_LF)==1 || ChangeInfrared(INFRARED_RF)==1) && ChangeInfrared(INFRARED_R)==1 && ChangeInfrared(INFRARED_L)==1 && cnt < 120) {
 			cnt ++;
-			MoveLeft(SPEED_MOTOR_TURN);
+			MoveLeft(SPEED_MOTOR_TURN_ATTACK);
 		}
 		return TRUE;
 	}
 	else if (ChangeInfrared(INFRARED_L) == 0) {
-		int cnt = 0;
-		while (ChangeInfrared(INFRARED_F)==1 && ChangeInfrared(INFRARED_R)==1 && ChangeInfrared(INFRARED_B)==1 && cnt < 120) {
+		// LcdShowInt("L", 0);
+		cnt = 0;
+		while ((ChangeInfrared(INFRARED_LF)==1 || ChangeInfrared(INFRARED_RF)==1) && ChangeInfrared(INFRARED_R)==1 && ChangeInfrared(INFRARED_B)==1 && cnt < 60) {
 			cnt ++;
-			MoveLeft(SPEED_MOTOR_TURN);
+			MoveRight(SPEED_MOTOR_TURN_ATTACK);
 		}
 		return TRUE;
 	}
 	else if (ChangeInfrared(INFRARED_R) == 0) {
-		int cnt = 0;
-		while (ChangeInfrared(INFRARED_F)==1 && ChangeInfrared(INFRARED_B)==1 && ChangeInfrared(INFRARED_L)==1 && cnt < 120) {
+		// LcdShowInt("R", 0);
+		cnt = 0;
+		while ((ChangeInfrared(INFRARED_LF)==1 || ChangeInfrared(INFRARED_RF)==1) && ChangeInfrared(INFRARED_B)==1 && ChangeInfrared(INFRARED_L)==1 && cnt < 60) {
 			cnt ++;
-			MoveRight(SPEED_MOTOR_TURN);
+			MoveLeft(SPEED_MOTOR_TURN_ATTACK);
 		}
 		return TRUE;
 	}
-	else if (ChangeInfrared(INFRARED_F) == 0 && ChangeInfrared(INFRARED_FL) == 0 && ChangeInfrared(INFRARED_FR) == 0) {
+	else if ((ChangeInfrared(INFRARED_LF) == 0 || ChangeInfrared(INFRARED_RF) == 0) && (ChangeInfrared(INFRARED_FL) == 0 && ChangeInfrared(INFRARED_FR) == 0)) {
+		// LcdShowInt("F", 0);
+		AttackFlag = TRUE;
 		MoveForword(SPEED_MOTOR_ATTACK);
 		return TRUE;
 	}
+	else {
+		// LcdShowInt("else", 0);
+		if (AttackFlag == TRUE && (ChangeInfrared(INFRARED_FL) == 1 || ChangeInfrared(INFRARED_FR) == 1)) {
+			MoveBack(SPEED_MOTOR_STOP);
+			UP_delay_ms(DELAY_UP_BACK * 5);
+		}
+		AttackFlag = FALSE;
+		MoveForword(SPEED_MOTOR_ON_STAGE);
+		return TRUE;
+	}
+	// LcdShowInt("Normal", 0);
 	return FALSE;
 }
 
@@ -525,19 +561,24 @@ void WakeOnStage() {
 	switch (InfraredSensorStateTurn)
 	{
 	case 0:
-		MoveForword(SPEED_MOTOR_ON_STAGE);
+		if (!Fight()) {
+			// LcdShowInt("normal", 1);
+			MoveForword(SPEED_MOTOR_ON_STAGE);
+		} else {
+			// LcdShowInt("Attack", 1);
+		}
 		break;
 	case 1:
 		if (G_flagTurnF == TRUE) {
 			MoveBack(SPEED_MOTOR_STOP);
-			UP_delay_ms(DELAY_UP_BACK);
+			UP_delay_ms(DELAY_UP_STOP);
 		}
 		MoveLeft(SPEED_MOTOR_TURN);
 		break;
 	case 2:
 		if (G_flagTurnF == TRUE) {
 			MoveBack(SPEED_MOTOR_STOP);
-			UP_delay_ms(DELAY_UP_BACK);
+			UP_delay_ms(DELAY_UP_STOP);
 		}
 		MoveRight(SPEED_MOTOR_TURN);
 		break;
@@ -549,12 +590,12 @@ void WakeOnStage() {
 		break;
 	case 5:
 		MoveBack(SPEED_MOTOR_STOP);
-		UP_delay_ms(DELAY_UP_BACK);
+		UP_delay_ms(DELAY_UP_STOP);
 		break;
 	case 6:
 		if (G_flagTurnF == TRUE) {
 			MoveBack(SPEED_MOTOR_STOP);
-			UP_delay_ms(DELAY_UP_BACK);
+			UP_delay_ms(DELAY_UP_STOP);
 		}
 		MoveRight(SPEED_MOTOR_TURN);
 		break;
@@ -564,7 +605,7 @@ void WakeOnStage() {
 	case 8:
 		if (G_flagTurnF == TRUE) {
 			MoveBack(SPEED_MOTOR_STOP);
-			UP_delay_ms(DELAY_UP_BACK);
+			UP_delay_ms(DELAY_UP_STOP);
 		}
 		MoveLeft(SPEED_MOTOR_TURN);
 		break;
@@ -582,9 +623,8 @@ void WakeOnStage() {
  */
 void OnStage() {
 	while(1) {
-        if(!Fight()) {
-		    WakeOnStage();
-        }
+		DebugDipAngle();
+	    // WakeOnStage();
 	}
 }
 
@@ -599,6 +639,30 @@ int ChangeInfrared(int id) {
 	int AD = UP_ADC_GetValue(id);
 	if(AD <= 1000) return 0;
 	else return 1;
+}
+
+/**
+ * Title: OutStage()
+ * Return: void
+ * Author: Ben
+ * Descr: When you are out of the stage, called this function.
+ */
+void OutStage() {
+	//前爪和后爪都抬起来
+	InitClaw();
+	//旋转
+	while (ChangeInfrared(INFRARED_L) == 1 || ChangeInfrared(INFRARED_R) == 1) {
+		MoveLeft(SPEED_MOTOR_TURN);
+	}
+	while (ChangeInfrared(INFRARED_B) == 0) {
+		MoveForword(SPEED_MOTOR_ON_STAGE);
+	}
+	//转向正确的位置
+	MoveLeft(SPEED_MOTOR_TURN);
+	UP_delay_ms(DELAY_DOWN_STAGE);
+	//上台
+	MoveForword(SPEED_MOTOR_ON_STAGE);
+	FirstUpStage();
 }
 
 /**************************************************************************************************************/
@@ -652,3 +716,18 @@ void DebugSensor(int x,int y,int id) {
 	// printf("end\n");
 }
 
+/**
+ * 测试距离
+ */
+void DebugDistance(int dis) {
+	int disState = UP_ADC_GetValue(dis);
+	LcdShowInt("DISTANCE", disState);
+}
+
+/**
+ * 测试倾角
+ */
+void DebugDipAngle() {
+	int angle = UP_ADC_GetValue(DIP_ANGLE);
+	LcdShowInt("DIP_ANGLE", angle);
+}
