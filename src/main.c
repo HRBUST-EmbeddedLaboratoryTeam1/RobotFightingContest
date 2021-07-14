@@ -131,6 +131,7 @@ void DebugInfraredSensor(int,int,int);	//测试红外传感器
 void DebugGrayScaleSensor(); 			//测试灰度传感器
 void DebugDistance(int);				//测试测距
 void DebugDipAngle();					//测试倾角
+void DebugGray();                       //测量灰度值
 
 /***************************************************************************************************************/
 /***********************************************声明函数End******************************************************/
@@ -160,11 +161,8 @@ int main(void)
 	UP_delay_ms(DELAY_UP_STAGE + 50);
 
 	//台上瞎溜达
-	// OnStage();
-	OutStage();
-	// while (1) {
-	// 	DebugDistance(DISTANCE_B);
-	// }
+	OnStage();
+	// OutStage();
 }
 
 /**************************************************************************************************************/
@@ -470,7 +468,6 @@ void ClawDownB() {
  * LastBuild: 20201004
  */
 int GetInfraredSenorState() {
-
 	if(ChangeInfrared(INFRARED_FR)==0&&ChangeInfrared(INFRARED_FL)==0&&ChangeInfrared(INFRARED_BR)==0&&ChangeInfrared(INFRARED_BL)==0)
 		return 0;
 	else if(ChangeInfrared(INFRARED_FR)==1&&ChangeInfrared(INFRARED_FL)==0&&ChangeInfrared(INFRARED_BR)==0&&ChangeInfrared(INFRARED_BL)==0)
@@ -489,6 +486,8 @@ int GetInfraredSenorState() {
 		return 7;
 	else if(ChangeInfrared(INFRARED_FR)==1&&ChangeInfrared(INFRARED_FL)==0&&ChangeInfrared(INFRARED_BR)==1&&ChangeInfrared(INFRARED_BL)==0)
 		return 8;
+	else if (((ChangeInfrared(INFRARED_LF)==0 || ChangeInfrared(INFRARED_RF)==0) && ChangeInfrared(INFRARED_B)==0) || (ChangeInfrared(INFRARED_L)==0 && ChangeInfrared(INFRARED_R)==0))
+		return 9;
 	return -1;
 }
 
@@ -621,6 +620,9 @@ void WakeOnStage() {
 		}
 		MoveLeft(SPEED_MOTOR_TURN);
 		break;
+	case 9:
+		OutStage();
+		break;
 	default:
 		break;
 	}
@@ -662,11 +664,10 @@ int ChangeInfrared(int id) {
 void OutStage() {
 	//前爪和后爪都抬起来
 	InitClaw();
-	// LcdShowInt("Zero Succesed!", 0);
-	//旋转
+	//姿势调整
 	while (1) {
 		if (UP_ADC_GetValue(DISTANCE_B) > 290 
-					&& (!(ChangeInfrared(INFRARED_L) == 0 && ChangeInfrared(INFRARED_R) == 0))) {
+					&& (ChangeInfrared(INFRARED_L) ^ ChangeInfrared(INFRARED_R))) {
 			MoveStop();
 			UP_delay_ms(100);
 			MoveForword(SPEED_MOTOR_ON_STAGE);
@@ -681,16 +682,8 @@ void OutStage() {
 			break;
 		}
 	}
-	// LcdShowInt("First Succesed!", 0);
-	// while (1) {
-	// 	if (ChangeInfrared(INFRARED_B) == 0) {
-	// 		;
-	// 	} else {
-	// 		MoveStop();
-	// 		break;
-	// 	}
-	// }
-	// LcdShowInt("Second Succesed!", 0);
+
+	//转到后面面向台子
 	while (1) {
 		if ((ChangeInfrared(INFRARED_L) == 0 || ChangeInfrared(INFRARED_R) == 0) 
 		|| ChangeInfrared(INFRARED_B) == 1 || UP_ADC_GetValue(DISTANCE_B) > 100) {
@@ -783,4 +776,12 @@ void DebugDistance(int dis) {
 void DebugDipAngle() {
 	int angle = UP_ADC_GetValue(DIP_ANGLE);
 	LcdShowInt("DIP_ANGLE", angle);
+}
+
+/**
+ * 测量灰度
+ */
+void DebugGray() {
+	int grayValue = UP_ADC_GetValue(GRAY);
+	LcdShowInt("GRAY", grayValue);
 }

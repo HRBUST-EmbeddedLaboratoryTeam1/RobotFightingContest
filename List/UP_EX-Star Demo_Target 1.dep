@@ -1,5 +1,5 @@
 Dependencies for Project 'UP_EX-Star Demo', Target 'Target 1': (DO NOT MODIFY !)
-F (..\src\main.c)(0x60EECA42)(-c --cpu Cortex-M3 -D__MICROLIB -g -O3 --apcs=interwork --split_sections-ID:\InstallationPackage\keil\ARM\RV31\INC-ID:\InstallationPackage\keil\ARM\CMSIS\Include-ID:\InstallationPackage\keil\ARM\INC\ST\STM32F10x-D__UVISION_VERSION="528" -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\list\main.o --omf_browse ..\list\main.crf --depend ..\list\main.d)
+F (..\src\main.c)(0x60EECB92)(-c --cpu Cortex-M3 -D__MICROLIB -g -O3 --apcs=interwork --split_sections-ID:\InstallationPackage\keil\ARM\RV31\INC-ID:\InstallationPackage\keil\ARM\CMSIS\Include-ID:\InstallationPackage\keil\ARM\INC\ST\STM32F10x-D__UVISION_VERSION="528" -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER-o ..\list\main.o --omf_browse ..\list\main.crf --depend ..\list\main.d)
 I (..\src\UPLib\\UP_System.h)(0x605AEA67)
 I (..\src\UPLib\\STM32Lib\\stm32f10x.h)(0x605AEA67)
 I (..\src\UPLib\\STM32Lib\\core_cm3.h)(0x605AEA67)
