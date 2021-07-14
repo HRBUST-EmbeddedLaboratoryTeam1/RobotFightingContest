@@ -14,8 +14,8 @@ const int GEAR_BACK_LEFT = 1;
 const int GEAR_BACK_RIGHT = 2;
 
 //舵机平衡位置角度
-const int GEAR_ANGLE_FRONT_LEFT = 500 + 20;	 //左前爪平衡位置角度 
-const int GEAR_ANGLE_FRONT_RIGHT = 550 - 20; //右前爪平衡位置角度
+const int GEAR_ANGLE_FRONT_LEFT = 500;	 //左前爪平衡位置角度 
+const int GEAR_ANGLE_FRONT_RIGHT = 550; //右前爪平衡位置角度
 const int GEAR_ANGLE_BACK_LEFT = 520;	     //左后爪平衡位置角度
 const int GEAR_ANGLE_BACK_RIGHT = 450;	     //右后爪平衡位置角度
 
@@ -36,8 +36,8 @@ const int INFRARED_BR = 7;	//右后红外传感器
 const int INFRARED_FR = 6;	//右前红外传感器
 const int INFRARED_F = 0;	//前侧红外传感器
 const int INFRARED_B = 2;	//后侧红外传感器
-const int INFRARED_L = 1;   //左边红外传感器
-const int INFRARED_R = 3; 	//右边红外传感器
+const int INFRARED_L = 3;   //左边红外传感器
+const int INFRARED_R = 1; 	//右边红外传感器
 const int INFRARED_LF = 11; //铲子左边红外传感器
 const int INFRARED_RF = 8;  //铲子右边红外传感器
 const int GRAY = 5;         //铲子下面灰度传感器
@@ -55,7 +55,7 @@ const int SPEED_GEAR = 800;	//舵机速度
 const int SPEED_MOTOR = 500; //上台时电机速度
 const int SPEED_MOTOR_TURN = 400; //转向时电机速度
 const int SPEED_MOTOR_ON_STAGE = 400; //上台后电机速度
-const int SPEED_MOTOR_ATTACK = 700;	//上台后的攻击速度
+const int SPEED_MOTOR_ATTACK = 1000;	//上台后的攻击速度
 const int SPEED_MOTOR_TURN_ATTACK = 500; //上台后的转向攻击速度
 const int SPEED_MOTOR_TURN_ATTACK_TIME = 400; //上台后转向攻击延时
 const int SPEED_MOTOR_STOP = 1000;	//刹车反转速度
@@ -65,6 +65,7 @@ const int DELAY_UP_STAGE = 750; //上台延时
 const int DELAY_UP_BACK = 50; //反转延迟
 const int DELAY_UP_STOP = 10; //停下来延时
 const int DELAY_DOWN_STAGE = 100; //台下旋转延时
+const int DELAY_UP_TURN = 900; //台上转身延时
 
 /**************************************************************************************************************/
 /***********************************************常量End**********************************************************/
@@ -102,6 +103,8 @@ void MoveForword(int); 		//向前走
 void MoveLeft(int);			//左转
 void MoveRight(int);		//右转
 void MoveBack(int);
+void MoveLeftBackCir(int);
+void MoveRightBackCir(int);
 void MoveStop(); 			//停下
 
 void SoftStart(); 	//软启动函数
@@ -141,27 +144,10 @@ void DebugDipAngle();					//测试倾角
 
 int main(void)
 {	
+	// LcdShowInt("OK!", 0);
 	//初始化函数
 	// InitSys();
-	// DebugGrayScaleSensor();
 	UP_System_Init();
-	// UP_LCD_ClearScreen();
-
-	// AD = UP_ADC_GetValue(INFRARED_F);
-	// // LcdShowInt(AD);
-	// if(AD == 0) {
-	// 	MoveQuickStop(SPEED_MOTOR_ON_STAGE);
-	// 	UP_delay_ms(10);
-	// }
-	// while(1) {
-	// 	printf("L = %d\n", ChangeInfrared(INFRARED_L));
-	// 	printf("R = %d\n", ChangeInfrared(INFRARED_R));
-	// 	printf("B = %d\n", ChangeInfrared(INFRARED_B));
-	// 	printf("LF = %d\n", ChangeInfrared(INFRARED_LF));
-	// 	printf("RF = %d\n", ChangeInfrared(INFRARED_RF));
-	// 	UP_delay_ms(400);
-	// 	UP_LCD_ClearScreen();
-	// }
 
 	//软启动
 	// SoftStart();
@@ -176,6 +162,9 @@ int main(void)
 	//台上瞎溜达
 	// OnStage();
 	OutStage();
+	// while (1) {
+	// 	DebugDistance(DISTANCE_B);
+	// }
 }
 
 /**************************************************************************************************************/
@@ -281,7 +270,7 @@ void InitClaw()
 {
 	InitForepaw();
 	InitHindpaw();
-	UP_delay_ms(500);
+	UP_delay_ms(600);
 }
 
 /****************************************************************************************************************/
@@ -359,7 +348,19 @@ void MoveRight(int speed) {
  */
 void MoveLeft(int speed) {
 	UP_CDS_SetSpeed(MOTOR_LEFT, -speed);
-	UP_CDS_SetSpeed(MOTOR_RIGHT, -speed - 30);
+	UP_CDS_SetSpeed(MOTOR_RIGHT, -speed);
+	G_flagTurnF = FALSE;
+}
+
+void MoveLeftBackCir(int Speed) {
+	UP_CDS_SetSpeed(MOTOR_LEFT, -speed);
+	UP_CDS_SetSpeed(MOTOR_RIGHT, 0);
+	G_flagTurnF = FALSE;
+}
+
+void MoveRightBackCir(int Speed) {
+	UP_CDS_SetSpeed(MOTOR_LEFT, 0);
+	UP_CDS_SetSpeed(MOTOR_RIGHT, speed);
 	G_flagTurnF = FALSE;
 }
 
@@ -396,7 +397,7 @@ void SoftStart() {
  */
 void MoveBeforeUpStage() {
 	MoveBack(SPEED_MOTOR);
-	UP_delay_ms(300);	//行走至擂台边缘
+	UP_delay_ms(400);	//行走至擂台边缘
 }
 
 /**
@@ -409,8 +410,8 @@ void MoveBeforeUpStage() {
 void FirstUpStage()
 {
 	//后爪向下
-	UP_CDS_SetAngle(GEAR_BACK_LEFT,GEAR_ANGLE_BACK_LEFT + 150, SPEED_GEAR);
-	UP_CDS_SetAngle(GEAR_BACK_RIGHT,GEAR_ANGLE_BACK_RIGHT - 150, SPEED_GEAR);
+	UP_CDS_SetAngle(GEAR_BACK_LEFT,GEAR_ANGLE_BACK_LEFT + 200, SPEED_GEAR);
+	UP_CDS_SetAngle(GEAR_BACK_RIGHT,GEAR_ANGLE_BACK_RIGHT - 200, SPEED_GEAR);
 	UP_delay_ms(DELAY_UP_STAGE);
 
 	//后爪复位
@@ -418,8 +419,8 @@ void FirstUpStage()
 	// UP_delay_ms(DELAY_UP_STAGE - 100);
 
 	//前爪向下
-	UP_CDS_SetAngle(GEAR_FRONT_LEFT, GEAR_ANGLE_FRONT_LEFT + 200, SPEED_GEAR);
-	UP_CDS_SetAngle(GEAR_FRONT_RIGHT, GEAR_ANGLE_FRONT_RIGHT - 200, SPEED_GEAR);
+	UP_CDS_SetAngle(GEAR_FRONT_LEFT, GEAR_ANGLE_FRONT_LEFT + 250, SPEED_GEAR);
+	UP_CDS_SetAngle(GEAR_FRONT_RIGHT, GEAR_ANGLE_FRONT_RIGHT - 250, SPEED_GEAR);
 	UP_delay_ms(DELAY_UP_STAGE + 50);
 	
 	//前爪复位
@@ -432,7 +433,7 @@ void FirstUpStage()
 	
 	//进入攻击状态，转身
 	MoveLeft(SPEED_MOTOR_TURN_ATTACK);
-	UP_delay_ms(770);
+	UP_delay_ms(DELAY_UP_TURN);
 	MoveStop();
 }
 
@@ -509,48 +510,59 @@ int GrayCheck() {
 bool Fight() {
 	int cnt;
 	if (ChangeInfrared(INFRARED_B) == 0) {
-		cnt = 0;
-		while ((ChangeInfrared(INFRARED_LF)==1 || ChangeInfrared(INFRARED_RF)==1) && ChangeInfrared(INFRARED_R)==1 && ChangeInfrared(INFRARED_L)==1 && cnt < 120) {
-			cnt ++;
+		cnt = 12000;
+		while ((ChangeInfrared(INFRARED_LF)==1 || ChangeInfrared(INFRARED_RF)==1) && ChangeInfrared(INFRARED_R)==1 && ChangeInfrared(INFRARED_L)==1 && cnt > 0) {
+			cnt --;
 			MoveLeft(SPEED_MOTOR_TURN_ATTACK);
 		}
+		AttackFlag = FALSE;
 		return TRUE;
 	}
 	else if (ChangeInfrared(INFRARED_L) == 0) {
 		// LcdShowInt("L", 0);
-		cnt = 0;
-		while ((ChangeInfrared(INFRARED_LF)==1 || ChangeInfrared(INFRARED_RF)==1) && ChangeInfrared(INFRARED_R)==1 && ChangeInfrared(INFRARED_B)==1 && cnt < 60) {
-			cnt ++;
-			MoveRight(SPEED_MOTOR_TURN_ATTACK);
+		cnt = 6000;
+		while ((ChangeInfrared(INFRARED_LF)==1 || ChangeInfrared(INFRARED_RF)==1) && ChangeInfrared(INFRARED_R)==1 && ChangeInfrared(INFRARED_B)==1 && cnt > 0) {
+			cnt --;
+			MoveLeftBackCir(SPEED_MOTOR_TURN_ATTACK);
 		}
+		AttackFlag = FALSE;
 		return TRUE;
 	}
 	else if (ChangeInfrared(INFRARED_R) == 0) {
 		// LcdShowInt("R", 0);
-		cnt = 0;
-		while ((ChangeInfrared(INFRARED_LF)==1 || ChangeInfrared(INFRARED_RF)==1) && ChangeInfrared(INFRARED_B)==1 && ChangeInfrared(INFRARED_L)==1 && cnt < 60) {
-			cnt ++;
-			MoveLeft(SPEED_MOTOR_TURN_ATTACK);
+		cnt = 6000;
+		while ((ChangeInfrared(INFRARED_LF)==1 || ChangeInfrared(INFRARED_RF)==1) && ChangeInfrared(INFRARED_B)==1 && ChangeInfrared(INFRARED_L)==1 && cnt > 0) {
+			cnt --;
+			MoveRightBackCir(SPEED_MOTOR_TURN_ATTACK);
 		}
+		AttackFlag = FALSE;
 		return TRUE;
 	}
-	else if ((ChangeInfrared(INFRARED_LF) == 0 || ChangeInfrared(INFRARED_RF) == 0) && (ChangeInfrared(INFRARED_FL) == 0 && ChangeInfrared(INFRARED_FR) == 0)) {
+	else if ((ChangeInfrared(INFRARED_LF)==0 && ChangeInfrared(INFRARED_RF==1)) && (ChangeInfrared(INFRARED_FL) == 0 && ChangeInfrared(INFRARED_FR) == 0)) {
+		MoveLeft(SPEED_MOTOR_ATTACK);
+		AttackFlag = FALSE;
+		return TRUE;
+	}
+	else if ((ChangeInfrared(INFRARED_LF)==1 && ChangeInfrared(INFRARED_RF==0)) && (ChangeInfrared(INFRARED_FL) == 0 && ChangeInfrared(INFRARED_FR) == 0)) {
+		MoveRight(SPEED_MOTOR_ATTACK);
+		AttackFlag = FALSE;
+		return TRUE;
+	}
+	else if ((ChangeInfrared(INFRARED_LF) == 0 && ChangeInfrared(INFRARED_RF) == 0) && (ChangeInfrared(INFRARED_FL) == 0 && ChangeInfrared(INFRARED_FR) == 0)) {
 		// LcdShowInt("F", 0);
 		AttackFlag = TRUE;
 		MoveForword(SPEED_MOTOR_ATTACK);
 		return TRUE;
 	}
-	else {
-		// LcdShowInt("else", 0);
-		if (AttackFlag == TRUE && (ChangeInfrared(INFRARED_FL) == 1 || ChangeInfrared(INFRARED_FR) == 1)) {
-			MoveBack(SPEED_MOTOR_STOP);
-			UP_delay_ms(DELAY_UP_BACK * 5);
-		}
+	else if (AttackFlag == TRUE && (ChangeInfrared(INFRARED_FL) == 1 || ChangeInfrared(INFRARED_FR) == 1)){
+		MoveBack(SPEED_MOTOR_STOP);
+		UP_delay_ms(DELAY_UP_BACK * 10);
 		AttackFlag = FALSE;
 		MoveForword(SPEED_MOTOR_ON_STAGE);
-		return TRUE;
 	}
-	// LcdShowInt("Normal", 0);
+	else {
+		AttackFlag = FALSE;
+	}
 	return FALSE;
 }
 
@@ -623,8 +635,8 @@ void WakeOnStage() {
  */
 void OnStage() {
 	while(1) {
-		DebugDipAngle();
-	    // WakeOnStage();
+		// DebugDipAngle();
+	    WakeOnStage();
 	}
 }
 
@@ -653,9 +665,10 @@ void OutStage() {
 	// LcdShowInt("Zero Succesed!", 0);
 	//旋转
 	while (1) {
-		if (UP_ADC_GetValue(DISTANCE_B) > 100 
-					&& (ChangeInfrared(INFRARED_L) == 1 || ChangeInfrared(INFRARED_R) == 1)) {
+		if (UP_ADC_GetValue(DISTANCE_B) > 290 
+					&& (!(ChangeInfrared(INFRARED_L) == 0 && ChangeInfrared(INFRARED_R) == 0))) {
 			MoveStop();
+			UP_delay_ms(100);
 			MoveForword(SPEED_MOTOR_ON_STAGE);
 			UP_delay_ms(1000);
 			break;
@@ -667,9 +680,8 @@ void OutStage() {
 			MoveStop();
 			break;
 		}
-		
 	}
-	LcdShowInt("First Succesed!", 0);
+	// LcdShowInt("First Succesed!", 0);
 	// while (1) {
 	// 	if (ChangeInfrared(INFRARED_B) == 0) {
 	// 		;
